@@ -12,17 +12,22 @@ var dbConfig = {
   },
 };
 
+Object.assign(dbConfig, {
+  entities: ['**/**/*.entity.js'],
+});
+
+console.log('process', process.env.NODE_ENV)
 switch (process.env.NODE_ENV) {
   case 'development':
     Object.assign(dbConfig, {
-      entities: ['**/*.entity.js'],
+      entities: ['**/**/*.entity.js'],
     });
     break;
   case 'test':
     Object.assign(dbConfig, {
       type: 'sqlite',
       database: 'test.sqlite',
-      entities: ['**/*.entity.ts'],
+      entities: ['**/**/*.entity.js'],
       migrationsRun: true,
     });
     break;

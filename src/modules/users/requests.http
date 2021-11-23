@@ -1,9 +1,18 @@
-### Create a new user
+### Create a new user with phone
 POST http://localhost:3000/auth/signup
 content-type: application/json
 
 {
-  "phoneNumber": "+923347019933",
+  "phoneNumber": "+923347019934",
+  "password": "12345"
+}
+
+### Create a new user with email
+POST http://localhost:3000/auth/signup
+content-type: application/json
+
+{
+  "email": "wmfarooqi05@gmail.com",
   "password": "12345"
 }
 
@@ -16,6 +25,15 @@ content-type: application/json
   "password": "12345"
 }
 
+### Sign in as an existing user email
+POST http://localhost:3000/auth/signin
+content-type: application/json
+
+{
+  "email": "wmfarooqi05@gmail.com",
+  "password": "12345"
+}
+ 
 ### Get the currently signed in user
 GET http://localhost:3000/auth/whoami
 

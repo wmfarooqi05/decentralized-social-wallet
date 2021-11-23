@@ -7,8 +7,8 @@ import { User } from './user.entity';
 export class UsersService {
   constructor(@InjectRepository(User) private repo: Repository<User>) {}
 
-  create(phoneNumber: string, password: string) {
-    const user = this.repo.create({ phoneNumber, password });
+  create(email, phoneNumber: string, password: string) {
+    const user = this.repo.create({ email, phoneNumber, password });
 
     return this.repo.save(user);
   }
@@ -20,14 +20,22 @@ export class UsersService {
     return this.repo.findOne(id);
   }
 
-  find(phoneNumber: string) {
-    return this.repo.find({ phoneNumber });
+  findByEmail(email: string) {
+    return this.repo.findOne({ email });
+  }
+
+  findByPhoneNumber(phoneNumber: string) {
+    return this.repo.findOne({ phoneNumber });
   }
 
   async update(id: number, attrs: Partial<User>) {
     const user = await this.findOne(id);
     if (!user) {
       throw new NotFoundException('user not found');
+    }
+
+    if (attrs.password) {
+      
     }
     Object.assign(user, attrs);
     return this.repo.save(user);

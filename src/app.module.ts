@@ -4,12 +4,13 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { UsersModule } from './users/users.module';
-import { ReportsModule } from './reports/reports.module';
-import { User } from './users/user.entity';
-import { Report } from './reports/report.entity';
+import { UsersModule } from './modules/users/users.module';
+import { CryptoKeysController } from './modules/crypto-keys/crypto-keys.controller';
+import { CryptoKeysModule } from './modules/crypto-keys/crypto-keys.module';
+import { TransactionsController } from './modules/transactions/transactions.controller';
+import { TransactionsModule } from './modules/transactions/transactions.module';
 const cookieSession = require('cookie-session');
-console.log('env', process.env.NODE_ENV);
+
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -18,9 +19,10 @@ console.log('env', process.env.NODE_ENV);
     }),
     TypeOrmModule.forRoot(),
     UsersModule,
-    ReportsModule,
+    CryptoKeysModule,
+    TransactionsModule,
   ],
-  controllers: [AppController],
+  controllers: [AppController, CryptoKeysController, TransactionsController],
   providers: [
     AppService,
     {
