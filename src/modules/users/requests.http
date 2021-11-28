@@ -3,8 +3,9 @@ POST http://localhost:3000/auth/signup
 content-type: application/json
 
 {
-  "phoneNumber": "+923347019934",
-  "password": "12345"
+  "phoneNumber": "+923347019937",
+  "password": "12345",
+  "fullName": "Waleed mehmood"
 }
 
 ### Create a new user with email
@@ -22,7 +23,8 @@ content-type: application/json
 
 {
   "phoneNumber": "+923347019933",
-  "password": "12345"
+  "password": "12345",
+  "fullName": "waleed" // this will be excluded due to validation pipe
 }
 
 ### Sign in as an existing user email

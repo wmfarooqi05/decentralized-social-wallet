@@ -5,10 +5,10 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { UsersModule } from './modules/users/users.module';
-import { CryptoKeysController } from './modules/crypto-keys/crypto-keys.controller';
 import { CryptoKeysModule } from './modules/crypto-keys/crypto-keys.module';
-import { TransactionsController } from './modules/transactions/transactions.controller';
 import { TransactionsModule } from './modules/transactions/transactions.module';
+import { AuthModule } from './modules/auth/auth.module';
+
 const cookieSession = require('cookie-session');
 
 @Module({
@@ -21,8 +21,9 @@ const cookieSession = require('cookie-session');
     UsersModule,
     CryptoKeysModule,
     TransactionsModule,
+    AuthModule,
   ],
-  controllers: [AppController, CryptoKeysController, TransactionsController],
+  controllers: [AppController],
   providers: [
     AppService,
     {

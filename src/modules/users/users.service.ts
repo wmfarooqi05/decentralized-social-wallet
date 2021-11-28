@@ -2,13 +2,25 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './user.entity';
+import { PasswordService } from '../auth/password.service';
 
 @Injectable()
 export class UsersService {
-  constructor(@InjectRepository(User) private repo: Repository<User>) {}
+  constructor(
+    @InjectRepository(User) private repo: Repository<User>,
+    private passwordService: PasswordService,
+  ) {}
 
-  create(email, phoneNumber: string, password: string) {
-    const user = this.repo.create({ email, phoneNumber, password });
+  async create(email: string, phoneNumber: string, password: string, fullName: string) {
+    // Hash the users password
+    const hashedPassword = await this.passwordService.hashPassword(password);
+
+    const user = this.repo.create({
+      email,
+      phoneNumber,
+      password: hashedPassword,
+      fullName,
+    });
 
     return this.repo.save(user);
   }
@@ -35,7 +47,6 @@ export class UsersService {
     }
 
     if (attrs.password) {
-      
     }
     Object.assign(user, attrs);
     return this.repo.save(user);

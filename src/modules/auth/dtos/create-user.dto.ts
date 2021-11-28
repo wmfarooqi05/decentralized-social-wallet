@@ -18,4 +18,8 @@ export class CreateUserDto {
   @IsString()
   @ApiProperty({ type: String, description: 'password' })
   password: string;
+
+  @IsString()
+  @ApiProperty({ type: String, description: 'Full Name' })
+  fullName: string;
 }

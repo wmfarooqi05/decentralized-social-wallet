@@ -15,10 +15,10 @@ export class UserDto {
   fullName: string;
 
   @Expose()
-  isEmailVerified: string;
+  isEmailVerified: boolean;
 
   @Expose()
-  isPhoneNumberVerified: string;
+  isPhoneNumberVerified: boolean;
 
   @Expose()
   userStatus: string;
