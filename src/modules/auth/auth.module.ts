@@ -9,6 +9,8 @@ import { CurrentUserMiddleware } from '../auth/middlewares/current-user.middlewa
 import { AuthController } from './auth.controller';
 import { JwtModule } from '@nestjs/jwt';
 import { JwtService } from '@nestjs/jwt';
+import { OtpModule } from '../otp/otp.module';
+import { SendgridService } from 'src/services/email.service';
 
 @Module({
   imports: [
@@ -22,9 +24,14 @@ import { JwtService } from '@nestjs/jwt';
       //   expiresIn: '1D',
       // },
     }),
+    /**
+     * @DISCUSS
+     * otp service is not being used in AuthModule but code is platform is requiring it to be imported here
+     */
+    OtpModule,
   ],
   controllers: [AuthController],
-  providers: [AuthService, PasswordService, UsersService],
+  providers: [AuthService, PasswordService, UsersService, SendgridService],
 })
 export class AuthModule {
   configure(consumer: MiddlewareConsumer) {
