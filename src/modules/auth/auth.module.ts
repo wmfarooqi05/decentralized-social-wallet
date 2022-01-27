@@ -8,9 +8,9 @@ import { User } from '../users/user.entity';
 import { CurrentUserMiddleware } from '../auth/middlewares/current-user.middleware';
 import { AuthController } from './auth.controller';
 import { JwtModule } from '@nestjs/jwt';
-import { JwtService } from '@nestjs/jwt';
 import { OtpModule } from '../otp/otp.module';
-import { SendgridService } from 'src/services/email.service';
+import { SendgridService } from 'src/common/services/email.service';
+import { TwilioService } from 'src/common/services/twilio.service';
 
 @Module({
   imports: [
@@ -31,7 +31,13 @@ import { SendgridService } from 'src/services/email.service';
     OtpModule,
   ],
   controllers: [AuthController],
-  providers: [AuthService, PasswordService, UsersService, SendgridService],
+  providers: [
+    AuthService,
+    PasswordService,
+    UsersService,
+    SendgridService,
+    TwilioService,
+  ],
 })
 export class AuthModule {
   configure(consumer: MiddlewareConsumer) {

@@ -6,15 +6,13 @@ import {
   Delete,
   Param,
   NotFoundException,
-  Post,
-  Res,
 } from '@nestjs/common';
-import { Response } from 'express';
 import { UpdateUserDto } from './dtos/update-user.dto';
 import { UsersService } from './users.service';
 import { Serialize } from '../../interceptors/serialize.interceptor';
 import { UserDto } from './dtos/user.dto';
-import { UpdatePasswordDto } from './dtos/update-password.dto';
+import { User } from './user.entity';
+import Errors from 'src/constants/errors';
 
 @Controller('users')
 @Serialize(UserDto)
@@ -24,10 +22,10 @@ export class UsersController {
   ) {}
 
   @Get('/:id')
-  async findUser(@Param('id') id: string) {
+  async findUser(@Param('id') id: string): Promise<User> {
     const user = await this.usersService.findOne(parseInt(id));
     if (!user) {
-      throw new NotFoundException('user not found');
+      throw new NotFoundException(Errors.ENTITY_NOT_FOUND('User'));
     }
     return user;
   }
@@ -46,13 +44,4 @@ export class UsersController {
   updateUser(@Param('id') id: string, @Body() body: UpdateUserDto) {
     return this.usersService.update(parseInt(id), body);
   }
-
-  @Post('/change-password')
-  async changePassword(
-    @Body() body: UpdatePasswordDto,
-    @Res({ passthrough: true }) response: Response,
-  ) {
-    return await this.usersService.changePassword(body, response);
-  }
-
 }

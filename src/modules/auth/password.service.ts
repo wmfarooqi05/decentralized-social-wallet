@@ -25,6 +25,6 @@ export class PasswordService {
 
     const hash = (await scrypt(password, salt, 32)) as Buffer;
 
-    return storedHash !== hash.toString('hex');
+    return storedHash === hash.toString('hex');
   }
 }

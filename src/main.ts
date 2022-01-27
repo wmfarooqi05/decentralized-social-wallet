@@ -9,6 +9,8 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   (app as any).set('etag', false);
 
+  app.setGlobalPrefix('api');
+
   // if (!configService.isProduction()) {
     const document = SwaggerModule.createDocument(
       app,
@@ -18,7 +20,7 @@ async function bootstrap() {
         .build(),
     );
 
-    SwaggerModule.setup('docs', app, document);
+    SwaggerModule.setup('api/docs', app, document);
   // }
   
   app.use((req, res, next) => {

@@ -7,7 +7,8 @@ import { PasswordService } from '../auth/password.service';
 import { User } from './user.entity';
 import { CurrentUserMiddleware } from '../auth/middlewares/current-user.middleware';
 import { OtpModule } from '../otp/otp.module';
-import { SendgridService } from 'src/services/email.service';
+import { SendgridService } from 'src/common/services/email.service';
+import { TwilioService } from 'src/common/services/twilio.service';
 
 @Module({
   imports: [
@@ -24,7 +25,7 @@ import { SendgridService } from 'src/services/email.service';
     OtpModule,
   ],
   controllers: [UsersController],
-  providers: [UsersService, PasswordService, SendgridService],
+  providers: [UsersService, PasswordService, SendgridService, TwilioService],
 })
 export class UsersModule {
   configure(consumer: MiddlewareConsumer) {

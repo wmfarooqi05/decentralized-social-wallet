@@ -45,6 +45,9 @@ export class User {
   @Column({ default: false })
   isPhoneNumberVerified: boolean;
 
+  @Column({ default: null })
+  image: string;
+
   @Column({
     type: 'enum',
     enum: UserRole,

@@ -15,13 +15,21 @@ export class OtpService {
   }
 
   async createCode(user: User): Promise <Otp> {
-    const otpCode = `${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}`;
     if (!user) throw new NotFoundException('No user registered with given credentials.');
     const otp = await this.repo.create({
       user,
-      token: otpCode,
+      token: this.generateOTP(),
       type: TokenType.FORGOT_PASSWORD
     });
     return this.repo.save(otp);
+  }
+
+  generateOTP = () => {
+    const digits = '0123456789';
+    let OTP = '';
+    for (let i = 0; i < parseInt(process.env.OTP_LENGTH); i++ ) {
+        OTP += digits[Math.floor(Math.random() * 10)];
+    }
+    return OTP;
   }
 }
