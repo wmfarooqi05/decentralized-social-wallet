@@ -8,40 +8,46 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { UpdateUserDto } from './dtos/update-user.dto';
-import { UsersService } from './users.service';
+import { UserService } from './user.service';
 import { Serialize } from '../../interceptors/serialize.interceptor';
 import { UserDto } from './dtos/user.dto';
 import { User } from './user.entity';
 import Errors from 'src/constants/errors';
+import { Roles } from 'src/common/modules/roles/roles.decorator';
+import { Role } from 'src/common/modules/roles/roles.enum';
+import { RolesGuard } from 'src/common/modules/roles/roles.guard';
+// import { RolesGuard } from 'src/common/modules/roles/roles.guard';
 
-@Controller('users')
+// @TODO: change this with ADMIN
+@Roles(Role.USER_ROLE)
+@Controller('user')
 @Serialize(UserDto)
-export class UsersController {
+export class UserController {
   constructor(
-    private usersService: UsersService,
+    private userService: UserService,
   ) {}
 
   @Get('/:id')
   async findUser(@Param('id') id: string): Promise<User> {
-    const user = await this.usersService.findOne(parseInt(id));
+    const user = await this.userService.findOne(parseInt(id));
     if (!user) {
       throw new NotFoundException(Errors.ENTITY_NOT_FOUND('User'));
     }
     return user;
   }
 
-  // @Get()
-  // findAllUsers(@Query('phoneNumber') phoneNumber: string) {
-  //   return this.usersService.find(phoneNumber);
-  // }
+  @Get()
+  findAllUser() {
+    return this.userService.findAll();
+  }
 
   @Delete('/:id')
   removeUser(@Param('id') id: string) {
-    return this.usersService.remove(parseInt(id));
+    return this.userService.remove(parseInt(id));
   }
 
   @Patch('/:id')
   updateUser(@Param('id') id: string, @Body() body: UpdateUserDto) {
-    return this.usersService.update(parseInt(id), body);
+    return this.userService.update(parseInt(id), body);
   }
 }

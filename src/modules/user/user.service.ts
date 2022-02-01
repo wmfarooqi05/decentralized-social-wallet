@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -8,9 +9,9 @@ import { User } from './user.entity';
 import { PasswordService } from '../auth/password.service';
 
 @Injectable()
-export class UsersService {
+export class UserService {
   constructor(
-    @InjectRepository(User) private usersRepository: Repository<User>,
+    @InjectRepository(User) private userRepository: Repository<User>,
     private passwordService: PasswordService,
   ) {}
 
@@ -20,32 +21,46 @@ export class UsersService {
     password: string,
     fullName: string,
   ) {
-    // Hash the users password
+    // Hash the user password
     const hashedPassword = await this.passwordService.hashPassword(password);
 
-    const user = this.usersRepository.create({
+    const user = this.userRepository.create({
       email,
       phoneNumber,
       password: hashedPassword,
       fullName,
     });
 
-    return this.usersRepository.save(user);
+    return this.userRepository.save(user);
+  }
+
+  async findAll() {
+    return this.userRepository.find();
   }
 
   async findOne(id: number) {
     if (!id) {
       return null;
     }
-    return this.usersRepository.findOne(id);
+    return this.userRepository.findOne(id);
+  }
+
+  async findUser(user: { email?: string, phoneNumber?: string}): Promise<User> {
+    if (user.email) {
+      return this.findByEmail(user.email);
+    } else if (user.phoneNumber) {
+      return this.findByPhoneNumber(user.phoneNumber)
+    } else {
+      throw new BadRequestException('No Email/Phone Number provided');
+    }
   }
 
   async findByEmail(email: string) {
-    return this.usersRepository.findOne({ email });
+    return this.userRepository.findOne({ email });
   }
 
   async findByPhoneNumber(phoneNumber: string) {
-    return this.usersRepository.findOne({ phoneNumber });
+    return this.userRepository.findOne({ phoneNumber });
   }
 
   async update(id: number, attrs: Partial<User>) {
@@ -57,7 +72,7 @@ export class UsersService {
     if (attrs.password) {
     }
     Object.assign(user, attrs);
-    return this.usersRepository.save(user);
+    return this.userRepository.save(user);
   }
 
   async remove(id: number) {
@@ -65,6 +80,6 @@ export class UsersService {
     if (!user) {
       throw new NotFoundException('user not found');
     }
-    return this.usersRepository.remove(user);
+    return this.userRepository.remove(user);
   }
 }

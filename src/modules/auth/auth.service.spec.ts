@@ -1,19 +1,19 @@
 import { Test } from '@nestjs/testing';
 import { AuthService } from './auth.service';
-import { UsersService } from '../users/users.service';
-import { User } from '../users/user.entity';
+import { UserService } from '../user/user.service';
+import { User } from '../user/user.entity';
 
 describe('AuthService', () => {
   let service: AuthService;
-  let fakeUsersService: Partial<UsersService>;
+  let fakeUserService: Partial<UserService>;
 
   beforeEach(async () => {
-    // Create a fake copy of the users service
-    const users: User[] = [];
-    fakeUsersService = {
+    // Create a fake copy of the user service
+    const user: User[] = [];
+    fakeUserService = {
       find: (phoneNumber: string) => {
-        const filteredUsers = users.filter((user) => user.phoneNumber === phoneNumber);
-        return Promise.resolve(filteredUsers);
+        const filteredUser = user.filter((user) => user.phoneNumber === phoneNumber);
+        return Promise.resolve(filteredUser);
       },
       create: (phoneNumber: string, password: string) => {
         const user = {
@@ -21,7 +21,7 @@ describe('AuthService', () => {
           phoneNumber,
           password,
         } as User;
-        users.push(user);
+        user.push(user);
         return Promise.resolve(user);
       },
     };
@@ -30,8 +30,8 @@ describe('AuthService', () => {
       providers: [
         AuthService,
         {
-          provide: UsersService,
-          useValue: fakeUsersService,
+          provide: UserService,
+          useValue: fakeUserService,
         },
       ],
     }).compile();

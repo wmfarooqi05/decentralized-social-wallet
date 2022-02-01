@@ -1,18 +1,21 @@
 import {
   BadRequestException,
   ForbiddenException,
+  GoneException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { PasswordService } from 'src/modules/auth/password.service';
-import { UsersService } from '../users/users.service';
-import { User } from '../users/user.entity';
+import { UserService } from '../user/user.service';
+import { User } from '../user/user.entity';
 import { JwtService } from '@nestjs/jwt';
-import { Response } from 'express';
-import { UserDto } from '../users/dtos/user.dto';
-import JWT_PERMISSIONS from 'src/constants/jwt';
-import { UpdatePasswordDto } from './dtos/update-password.dto';
-import { FORGOT_PASSWORD_HEADING, otpEmailFormat, otpPhoneFormat } from 'src/constants/emails';
+import { Request, Response } from 'express';
+import { UserDto } from '../user/dtos/user.dto';
+import {
+  FORGOT_PASSWORD_HEADING,
+  otpEmailFormat,
+  otpPhoneFormat,
+} from 'src/constants/emails';
 import { ForgotPasswordDto } from '../auth/dtos/forgot-password.dto';
 import Errors from 'src/constants/errors';
 import { Repository } from 'typeorm';
@@ -20,17 +23,26 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { OtpService } from '../otp/otp.service';
 import { SendgridService } from 'src/common/services/email.service';
 import { TwilioService } from 'src/common/services/twilio.service';
+import { ChangePasswordDTO } from './dtos/change-password.dto';
+import { ValidateOTPDTO } from './dtos/validate-otp.dto';
+import { TokenType } from '../otp/otp.entity';
+import { ResetPasswordDTO } from './dtos/reset-password.dto';
+import { ConfigService } from '@nestjs/config';
+import { UserSessionService } from '../user-session/user-session.service';
+import jwt from 'config/jwt';
 
 @Injectable()
 export class AuthService {
   constructor(
-    @InjectRepository(User) private usersRepository: Repository<User>,
-    private usersService: UsersService,
-    private passwordService: PasswordService,
-    private jwtService: JwtService,
-    private otpService: OtpService,
+    @InjectRepository(User) private userRepository: Repository<User>,
+    private readonly userService: UserService,
+    private readonly passwordService: PasswordService,
+    private readonly jwtService: JwtService,
+    private readonly otpService: OtpService,
     private readonly sendgridService: SendgridService,
     private readonly twilioService: TwilioService,
+    private readonly configService: ConfigService,
+    private readonly userSessionService: UserSessionService,
   ) {}
 
   async signup(
@@ -41,33 +53,30 @@ export class AuthService {
   ): Promise<User> {
     // See if phoneNumber is in use
     if (email) {
-      const user = await this.usersService.findByEmail(email);
+      const user = await this.userService.findByEmail(email);
       if (user) {
         throw new ForbiddenException(Errors.EMAIL_ALREADY_IN_USE);
       }
     } else if (phoneNumber) {
-      const user = await this.usersService.findByPhoneNumber(phoneNumber);
+      const user = await this.userService.findByPhoneNumber(phoneNumber);
       if (user) {
         throw new ForbiddenException(Errors.PHONE_NUMBER_ALREADY_IN_USE);
       }
     }
 
     // Create a new user and save it
-    return this.usersService.create(email, phoneNumber, password, fullName);
+    return this.userService.create(email, phoneNumber, password, fullName);
   }
 
   async signin(
+    request: Request,
     email: string,
     phoneNumber: string,
     password: string,
     response: Response,
   ): Promise<UserDto> {
-    let user: User = null;
-    if (email) {
-      user = await this.usersService.findByEmail(email);
-    } else if (phoneNumber) {
-      user = await this.usersService.findByPhoneNumber(phoneNumber);
-    }
+    const user: User = await this.userService.findUser({ email, phoneNumber });
+
     if (!user) {
       throw new NotFoundException('user not found');
     }
@@ -76,13 +85,18 @@ export class AuthService {
       throw new BadRequestException('bad password');
     }
 
-    const jwtToken = await this.jwtService.signAsync({
+    const jwtToken = this.jwtService.sign({
       email: user.email,
       phoneNumber: user.phoneNumber,
-      fullName: user.fullName,
-      permissions: JWT_PERMISSIONS.USER_LEVEL_PERMISSION
+      name: user.fullName,
+      role: user.role,
     });
-    response.cookie('jwt', jwtToken, {httpOnly: true});
+    const refreshToken = this.userSessionService.generateRefreshToken(
+      user,
+      request.ip,
+    );
+    response.cookie('access-token', jwtToken, { httpOnly: true });
+    response.cookie('refresh-token', refreshToken, { httpOnly: true });
 
     return user;
   }
@@ -93,12 +107,7 @@ export class AuthService {
   ): Promise<any> {
     if (!request.email && !request.phoneNumber)
       throw new BadRequestException('Email or Phone Number is required.');
-    let user: User;
-    if (request.email) {
-      user = await this.usersRepository.findOne({ email: request.email });
-    } else {
-      user = await this.usersRepository.findOne({ phoneNumber: request.phoneNumber });
-    }
+    const user: User = await this.userService.findUser(request);
 
     if (!user) {
       throw new NotFoundException('No User found for given Email/Phone.');
@@ -132,31 +141,77 @@ export class AuthService {
     }
   }
 
-  async changePassword(
-    request: UpdatePasswordDto,
-    response: Response,
-  ): Promise<any> {
-    let user: User;
-    if (request.email) {
-      user = await this.usersRepository.findOne({ email: request.email });
-    } else {
-      user = await this.usersRepository.findOne({ phoneNumber: request.phoneNumber });
-    }
-
+  async changePassword(reqUser: any, body: ChangePasswordDTO): Promise<any> {
+    const user: User = await this.userService.findUser(reqUser);
     if (!user) {
       throw new NotFoundException('No User found for given Email/Phone.');
     }
+    const passwordValid = await this.passwordService.validatePassword(
+      body.oldPassword,
+      user.password,
+    );
 
-    const passwordValid = await this.passwordService.validatePassword(request.oldPassword, user.password);
     if (!passwordValid) {
       throw new ForbiddenException(Errors.PASSWORD_INCORRECT);
     }
 
-    const newPasswordHash = await this.passwordService.hashPassword(request.newPassword);
-    return this.usersRepository.update(user.id, { password: newPasswordHash });
+    const newPasswordHash = await this.passwordService.hashPassword(
+      body.newPassword,
+    );
+    return this.userRepository.update(user.id, { password: newPasswordHash });
   }
 
-  async validateOTPAndGenerateJWT () {
+  async validateOTPAndResetPassword(payload: ResetPasswordDTO) {
+    const user: User = await this.userService.findUser(payload);
+    if (!user) {
+      throw new NotFoundException('No User found for given Email/Phone.');
+    }
 
+    const validOTP = await this.otpService.validateOTP(user.id, payload.otp);
+    if (!validOTP) {
+      throw new GoneException('OTP expired or invalid');
+    }
+
+    const newPasswordHash = await this.passwordService.hashPassword(
+      payload.newPassword,
+    );
+    await this.userRepository.update(user.id, { password: newPasswordHash });
+    await this.otpService.invalidateAllTokens(
+      user.id,
+      TokenType.FORGOT_PASSWORD,
+    );
+  }
+
+  async validateOTP(payload: ValidateOTPDTO, response: Response) {
+    const user: User = await this.userService.findUser(payload);
+    if (!user) {
+      throw new NotFoundException('No User found for given Email/Phone.');
+    }
+
+    const validOTP = await this.otpService.validateOTP(user.id, payload.otp);
+    if (!validOTP) {
+      throw new GoneException('OTP expired or invalid');
+    }
+    response.status(200).json({
+      message: 'OTP Valid',
+    });
+  }
+
+  async refreshToken(jwtToken, refreshToken) {
+    const userPayload: any = this.jwtService.decode(jwtToken);
+    const user: User = await this.userService.findUser(userPayload);
+    this.userSessionService.verifyTokenExists(user?.id, refreshToken);
+    return {
+      jwtToken: this.jwtService.sign({
+        email: user.email,
+        phoneNumber: user.phoneNumber,
+        name: user.fullName,
+        role: user.role,
+      }),
+    };
+  }
+
+  async logout(userId, refreshToken) {
+    return this.userSessionService.logout(userId, refreshToken);
   }
 }

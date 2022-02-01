@@ -1,16 +1,16 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { UsersController } from './users.controller';
-import { UsersService } from './users.service';
+import { UserController } from './user.controller';
+import { UserService } from './user.service';
 import { AuthService } from '../auth/auth.service';
 import { User } from './user.entity';
 
-describe('UsersController', () => {
-  let controller: UsersController;
-  let fakeUsersService: Partial<UsersService>;
+describe('UserController', () => {
+  let controller: UserController;
+  let fakeUserService: Partial<UserService>;
   let fakeAuthService: Partial<AuthService>;
 
   beforeEach(async () => {
-    fakeUsersService = {
+    fakeUserService = {
       findOne: (id: number) => {
         return Promise.resolve({
           id,
@@ -32,11 +32,11 @@ describe('UsersController', () => {
     };
 
     const module: TestingModule = await Test.createTestingModule({
-      controllers: [UsersController],
+      controllers: [UserController],
       providers: [
         {
-          provide: UsersService,
-          useValue: fakeUsersService,
+          provide: UserService,
+          useValue: fakeUserService,
         },
         {
           provide: AuthService,
@@ -45,17 +45,17 @@ describe('UsersController', () => {
       ],
     }).compile();
 
-    controller = module.get<UsersController>(UsersController);
+    controller = module.get<UserController>(UserController);
   });
 
   it('should be defined', () => {
     expect(controller).toBeDefined();
   });
 
-  it('findAllUsers returns a list of users with the given phoneNumber', async () => {
-    const users = await controller.findAllUsers('asdf@asdf.com');
-    expect(users.length).toEqual(1);
-    expect(users[0].phoneNumber).toEqual('asdf@asdf.com');
+  it('findAllUser returns a list of user with the given phoneNumber', async () => {
+    const user = await controller.findAllUser('asdf@asdf.com');
+    expect(user.length).toEqual(1);
+    expect(user[0].phoneNumber).toEqual('asdf@asdf.com');
   });
 
   it('findUser returns a single user with the given id', async () => {
@@ -64,7 +64,7 @@ describe('UsersController', () => {
   });
 
   it('findUser throws an error if user with given id is not found', async (done) => {
-    fakeUsersService.findOne = () => null;
+    fakeUserService.findOne = () => null;
     try {
       await controller.findUser('1');
     } catch (err) {

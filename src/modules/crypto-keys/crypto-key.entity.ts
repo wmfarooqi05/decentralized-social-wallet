@@ -1,5 +1,5 @@
 import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, Timestamp } from 'typeorm';
-import { User } from '../users/user.entity';
+import { User } from '../user/user.entity';
 
 export enum KeyStatus {
   ACTIVE = 'ACTIVE',

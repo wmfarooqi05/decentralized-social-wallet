@@ -39,5 +39,4 @@ switch (process.env.NODE_ENV) {
     throw new Error('unknown environment');
 }
 
-console.log('environment', process.env.NODE_ENV);
 module.exports = dbConfig;

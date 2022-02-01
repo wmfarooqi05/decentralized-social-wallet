@@ -38,6 +38,7 @@
     "cookie-session": "^1.4.0",
     "cross-env": "^7.0.3",
     "dotenv": "^10.0.0",
+    "joi": "^17.6.0",
     "lodash": "^4.17.21",
     "moment": "^2.29.1",
     "nestjs-twilio": "^2.1.0",

@@ -1,5 +1,5 @@
 import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, Timestamp } from 'typeorm';
-import { User } from '../users/user.entity';
+import { User } from '../user/user.entity';
 import * as moment from 'moment';
 
 export enum TokenType {

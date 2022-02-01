@@ -62,6 +62,10 @@ export class User {
   })
   userStatus: UserStatus;
 
+  @Column({ nullable: true })
+  @Exclude()
+  refresh_token?: string;
+
   @Column({ type: "timestamp", default: () => "CURRENT_TIMESTAMP"})
   createdAt: Timestamp;
 

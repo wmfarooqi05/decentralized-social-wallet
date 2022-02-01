@@ -7,7 +7,7 @@ const scrypt = promisify(_scrypt);
 @Injectable()
 export class PasswordService {
   async hashPassword(password: string): Promise<string> {
-    // Hash the users password
+    // Hash the user password
     // Generate a salt
     const salt = randomBytes(8).toString('hex');
     // Hash the salt and the password together

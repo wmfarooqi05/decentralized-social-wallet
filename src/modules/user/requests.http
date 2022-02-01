@@ -45,7 +45,7 @@ POST http://localhost:3000/auth/signout
 ### Find a particular user with a given ID
 GET http://localhost:3000/auth/4
 
-### Find all users with a given phoneNumber
+### Find all user with a given phoneNumber
 GET http://localhost:3000/auth?phoneNumber=asdf@asdf.com
 
 ### Delete a user given id
