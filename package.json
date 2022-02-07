@@ -19,7 +19,7 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "docker:prod":"docker-compose -f docker-compose.prod.yaml build && docker-compose -f docker-compose.prod.yaml up -d",
+    "docker:prod":"docker-compose -f docker-compose.prod.yaml build && docker-compose -f docker-compose.prod.yaml --env-file .env.production up -d",
     "docker:dev": "docker-compose build && docker-compose up -d"
   },
   "dependencies": {
