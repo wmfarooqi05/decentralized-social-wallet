@@ -14,13 +14,7 @@ services:
     networks:
       - webnet
     depends_on:
-      - redis
       - postgres
-  redis:
-    container_name: redis
-    image: redis:latest
-    networks:
-      - webnet
   postgres:
     container_name: postgres
     image: postgres:12
