@@ -5,12 +5,12 @@ services:
     container_name: main
     build:
       context: .
-      target: development
+      target: production
     ports:
       - ${SERVER_PORT}:${SERVER_PORT}
-    command: yarn start
+    command: yarn start:prod
     env_file:
-      - .env
+      - .env.production
     networks:
       - webnet
     depends_on:
