@@ -38,7 +38,7 @@ export class UserService {
     return this.userRepository.find();
   }
 
-  async findOne(id: number) {
+  async findOneById(id: string) {
     if (!id) {
       return null;
     }
@@ -63,20 +63,17 @@ export class UserService {
     return this.userRepository.findOne({ phoneNumber });
   }
 
-  async update(id: number, attrs: Partial<User>) {
-    const user: User = await this.findOne(id);
+  async update(id: string, attrs: Partial<Omit<User, "password">>) {
+    const user: User = await this.findOneById(id);
     if (!user) {
       throw new NotFoundException('user not found');
-    }
-
-    if (attrs.password) {
     }
     Object.assign(user, attrs);
     return this.userRepository.save(user);
   }
 
-  async remove(id: number) {
-    const user = await this.findOne(id);
+  async remove(id: string) {
+    const user = await this.findOneById(id);
     if (!user) {
       throw new NotFoundException('user not found');
     }

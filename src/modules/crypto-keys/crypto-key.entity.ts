@@ -9,9 +9,9 @@ export enum KeyStatus {
 }
 
 @Entity()
-export class Report {
-  @PrimaryGeneratedColumn()
-  id: number;
+export class CryptoKey {
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
   @Column({ nullable: false })
   publicKey: string;
@@ -23,9 +23,20 @@ export class Report {
   })
   status: boolean;
 
-  @Column({ type: "timestamp", default: () => "CURRENT_TIMESTAMP"})
-  createdAt: Timestamp;
-
   @ManyToOne(() => User, (user) => user.id)
   user: User;
+  
+  @Column({
+    type: 'timestamp',
+    default: () => 'CURRENT_TIMESTAMP'
+  })
+  createdAt: Timestamp;
+
+  @Column({
+    type: 'timestamp',
+    default: () => 'CURRENT_TIMESTAMP',
+    onUpdate: 'CURRENT_TIMESTAMP',
+  })
+  updatedAt: Timestamp;
+
 }

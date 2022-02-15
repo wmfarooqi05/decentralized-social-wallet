@@ -7,41 +7,30 @@ import {
 } from '@nestjs/common';
 import { PasswordService } from 'src/modules/auth/password.service';
 import { UserService } from '../user/user.service';
-import { User } from '../user/user.entity';
+import { User, UserStatus } from '../user/user.entity';
 import { JwtService } from '@nestjs/jwt';
 import { Request, Response } from 'express';
 import { UserDto } from '../user/dtos/user.dto';
-import {
-  FORGOT_PASSWORD_HEADING,
-  otpEmailFormat,
-  otpPhoneFormat,
-} from 'src/constants/emails';
 import { ForgotPasswordDto } from '../auth/dtos/forgot-password.dto';
 import Errors from 'src/constants/errors';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { OtpService } from '../otp/otp.service';
-import { SendgridService } from 'src/common/services/email.service';
-import { TwilioService } from 'src/common/services/twilio.service';
 import { ChangePasswordDTO } from './dtos/change-password.dto';
 import { ValidateOTPDTO } from './dtos/validate-otp.dto';
 import { TokenType } from '../otp/otp.entity';
 import { ResetPasswordDTO } from './dtos/reset-password.dto';
-import { ConfigService } from '@nestjs/config';
 import { UserSessionService } from '../user-session/user-session.service';
-import jwt from 'config/jwt';
 
 @Injectable()
 export class AuthService {
   constructor(
+    // @TODO: remove user Repo and call user service instead
     @InjectRepository(User) private userRepository: Repository<User>,
     private readonly userService: UserService,
     private readonly passwordService: PasswordService,
     private readonly jwtService: JwtService,
     private readonly otpService: OtpService,
-    private readonly sendgridService: SendgridService,
-    private readonly twilioService: TwilioService,
-    private readonly configService: ConfigService,
     private readonly userSessionService: UserSessionService,
   ) {}
 
@@ -65,8 +54,21 @@ export class AuthService {
     }
 
     // Create a new user and save it
-    return this.userService.create(email, phoneNumber, password, fullName);
+    const newUser = await this.userService.create(
+      email,
+      phoneNumber,
+      password,
+      fullName,
+    );
+
+    await this.otpService.generateAndSendOTP(
+      newUser,
+      TokenType.ACCOUNT_REGISTER,
+    );
+    return newUser;
   }
+
+  async verifiySignupOTP() {}
 
   async signin(
     request: Request,
@@ -81,9 +83,7 @@ export class AuthService {
       throw new NotFoundException('user not found');
     }
 
-    if (!this.passwordService.validatePassword(password, user.password)) {
-      throw new BadRequestException('bad password');
-    }
+    await this.passwordService.validatePassword(password, user.password);
 
     const jwtToken = this.jwtService.sign({
       email: user.email,
@@ -101,44 +101,37 @@ export class AuthService {
     return user;
   }
 
+  // @TODO: Implement this
+  async resendOTP(userId: string, tokenType: TokenType) {
+    const user = await this.userService.findOneById(userId);
+    return this.otpService.generateAndSendOTP(user, tokenType);
+  }
+
+  async completeSignupWithOTP(userId: string, otp: string): Promise<User> {
+    await this.otpService.validateOTP(userId, otp);
+    const updatedUser = await this.userService.update(userId, {
+      userStatus: UserStatus.ACTIVE,
+    });
+    await this.otpService.invalidateAllTokens(
+      userId,
+      TokenType.ACCOUNT_REGISTER,
+    );
+    return updatedUser;
+  }
+
   async forgotPassword(
-    request: ForgotPasswordDto,
-    response: Response,
+    email?: string, phoneNumber?: string,
   ): Promise<any> {
-    if (!request.email && !request.phoneNumber)
+    if (!email && !phoneNumber) {
       throw new BadRequestException('Email or Phone Number is required.');
-    const user: User = await this.userService.findUser(request);
+    }
+    const user: User = await this.userService.findUser({ email, phoneNumber });
 
     if (!user) {
       throw new NotFoundException('No User found for given Email/Phone.');
     }
 
-    const otp = await this.otpService.createCode(user);
-    try {
-      if (request.email) {
-        await this.sendgridService.send(
-          request.email,
-          FORGOT_PASSWORD_HEADING,
-          otpEmailFormat(otp.token),
-        );
-        return {
-          message: 'Code has been generated successfully.',
-        };
-      } else if (request.phoneNumber) {
-        await this.twilioService.sendSMSToken(
-          request.phoneNumber,
-          otpPhoneFormat(otp.token),
-        );
-        return {
-          message: 'Code has been generated successfully.',
-        };
-      }
-    } catch (e) {
-      if (e?.response?.body?.errors[0]) {
-        throw new Error(e.response.body.errors[0].message);
-      }
-      console.log(e);
-    }
+    await this.otpService.generateAndSendOTP(user, TokenType.FORGOT_PASSWORD);
   }
 
   async changePassword(reqUser: any, body: ChangePasswordDTO): Promise<any> {

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { randomBytes, scrypt as _scrypt } from 'crypto';
 import { promisify } from 'util';
 
@@ -25,6 +25,10 @@ export class PasswordService {
 
     const hash = (await scrypt(password, salt, 32)) as Buffer;
 
-    return storedHash === hash.toString('hex');
+    if (storedHash !== hash.toString('hex')) {
+      throw new BadRequestException('Wrong password');
+    }
+
+    return true;
   }
 }

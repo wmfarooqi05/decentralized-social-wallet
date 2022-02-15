@@ -1,4 +1,4 @@
-import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, Timestamp } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, Timestamp, AfterUpdate, AfterInsert } from 'typeorm';
 import { User } from '../user/user.entity';
 import * as moment from 'moment';
 
@@ -9,8 +9,8 @@ export enum TokenType {
 
 @Entity()
 export class Otp {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
   @Column({ nullable: false })
   token: string;
@@ -19,11 +19,6 @@ export class Otp {
     type: "boolean", default: false, nullable: true
   })
   expired: boolean;
-
-  @Column({
-    type: "numeric", default: 5
-  })
-  expiry: number;
 
   @Column({ type: "timestamp", default: moment().add(1, 'minutes') })
   expiryTime: Timestamp;
@@ -36,4 +31,14 @@ export class Otp {
 
   @ManyToOne(() => User, (user) => user.id)
   user: User;
+
+  @AfterInsert()
+  logInsert() {
+    console.log('Inserted OTP with id', this.id, this.token);
+  }
+
+  @AfterUpdate()
+  logUpdate() {
+    console.log('Updated OTP with id', this.id, this.expired);
+  }
 }

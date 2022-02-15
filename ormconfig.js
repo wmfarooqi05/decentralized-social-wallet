@@ -5,11 +5,14 @@ const dbConfig = {
   username: process.env.DB_USERNAME,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_DATABASE_NAME,
-  entities: ['**/**/*.entity.js'],
+  entities: ['dist/src/modules/**/*.entity.js'],
+  // "synchronize": false,
+  // "logging": true,
+  "migrationsRun": false,
   synchronize: true, // DEV only, do not use on PROD!
-  migrations: ['migrations/*.js'],
+  "migrations": ["src/db/migrations"],
   cli: {
-    migrationsDir: 'migrations',
+    migrationsDir: 'src/db/migrations',
   },
 };
 

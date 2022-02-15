@@ -15,8 +15,8 @@ export enum TransactionStatus {
 
 @Entity()
 export class Transaction {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
   @Column({ nullable: false })
   publicKey: string;
@@ -26,7 +26,7 @@ export class Transaction {
     enum: TransactionChannel,
     default: TransactionChannel.ETHEREUM,
   })
-  transactionChannel: boolean;
+  transactionChannel: string;
 
   @Column({ type: "timestamp", default: () => "CURRENT_TIMESTAMP"})
   createdAt: Timestamp;
@@ -37,8 +37,12 @@ export class Transaction {
   @ManyToOne(() => User, (user) => user.id)
   reciever: User;
 
-  @Column({ type: "timestamp", default: () => "CURRENT_TIMESTAMP"})
-  updatedAt: Timestamp; // @TODO: check if working
+  @Column({
+    type: 'timestamp',
+    default: () => 'CURRENT_TIMESTAMP',
+    onUpdate: 'CURRENT_TIMESTAMP',
+  })
+  updatedAt: Timestamp;
 
   @Column({
       type: 'enum',
@@ -46,4 +50,7 @@ export class Transaction {
       default: TransactionStatus.PENDING
   })
   status: string;
+
+  @Column({ length: 1000, type: 'varchar' })
+  transactionPayload: JSON;
 }

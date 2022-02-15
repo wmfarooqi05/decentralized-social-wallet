@@ -23,20 +23,20 @@ export enum UserStatus {
 
 @Entity()
 export class User {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
-  @Column({nullable: true})
+  @Column({ nullable: true })
   email: string;
 
-  @Column({nullable: true})
+  @Column({ nullable: true })
   phoneNumber: string;
 
   @Column()
   @Exclude({ toPlainOnly: true })
   password: string;
 
-  @Column({nullable: true})
+  @Column({ nullable: true })
   fullName: string;
 
   @Column({ default: false })
@@ -66,10 +66,14 @@ export class User {
   @Exclude()
   refresh_token?: string;
 
-  @Column({ type: "timestamp", default: () => "CURRENT_TIMESTAMP"})
+  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   createdAt: Timestamp;
 
-  @Column({ type: "timestamp", default: () => "CURRENT_TIMESTAMP"})
+  @Column({
+    type: 'timestamp',
+    default: () => 'CURRENT_TIMESTAMP',
+    onUpdate: 'CURRENT_TIMESTAMP',
+  })
   updatedAt: Timestamp;
 
   @AfterInsert()

@@ -64,7 +64,7 @@ describe('UserController', () => {
   });
 
   it('findUser throws an error if user with given id is not found', async (done) => {
-    fakeUserService.findOne = () => null;
+    fakeUserService.findOneById = () => null;
     try {
       await controller.findUser('1');
     } catch (err) {

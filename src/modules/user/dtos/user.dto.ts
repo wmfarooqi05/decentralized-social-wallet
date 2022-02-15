@@ -3,7 +3,7 @@ import { Timestamp } from 'typeorm';
 
 export class UserDto {
   @Expose()
-  id: number;
+  id: string;
 
   @Expose()
   email: string;

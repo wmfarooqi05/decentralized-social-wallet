@@ -21,8 +21,8 @@ export enum SessionStatus {
 
 @Entity()
 export class UserSession {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
   @ManyToOne(() => User, (user) => user.id)
   user: User;

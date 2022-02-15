@@ -29,7 +29,7 @@ export class UserController {
 
   @Get('/:id')
   async findUser(@Param('id') id: string): Promise<User> {
-    const user = await this.userService.findOne(parseInt(id));
+    const user = await this.userService.findOneById(id);
     if (!user) {
       throw new NotFoundException(Errors.ENTITY_NOT_FOUND('User'));
     }
@@ -43,11 +43,11 @@ export class UserController {
 
   @Delete('/:id')
   removeUser(@Param('id') id: string) {
-    return this.userService.remove(parseInt(id));
+    return this.userService.remove(id);
   }
 
   @Patch('/:id')
   updateUser(@Param('id') id: string, @Body() body: UpdateUserDto) {
-    return this.userService.update(parseInt(id), body);
+    return this.userService.update(id, body);
   }
 }

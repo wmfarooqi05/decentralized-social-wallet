@@ -19,8 +19,13 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "docker:prod":"docker-compose -f docker-compose.prod.yaml build && docker-compose -f docker-compose.prod.yaml --env-file .env.production up -d",
-    "docker:dev": "docker-compose build && docker-compose up -d"
+    "docker:prod": "docker-compose -f docker-compose.prod.yaml build && docker-compose -f docker-compose.prod.yaml --env-file .env.production up -d",
+    "docker:dev": "docker-compose build && docker-compose up -d",
+    "typeorm": "node --require ts-node/register ./node_modules/typeorm/cli.js",
+    "migrate:generate": "yarn build && yarn typeorm migration:generate -- -n",
+    "migrate:run": "yarn build && yarn typeorm migration:run",
+    "migrate:revert": "yarn build && yarn typeorm migration:revert",
+    "schema:drop": "yarn build && yarn typeorm schema:drop"
   },
   "dependencies": {
     "@nestjs/common": "^8.0.0",
@@ -52,7 +57,8 @@
     "rxjs": "^7.2.0",
     "swagger-ui-express": "^4.1.6",
     "twilio": "^3.73.0",
-    "typeorm": "^0.2.41"
+    "typeorm": "^0.2.41",
+    "uuidv4": "^6.2.12"
   },
   "devDependencies": {
     "@nestjs/cli": "^8.0.0",

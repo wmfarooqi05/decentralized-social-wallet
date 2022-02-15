@@ -8,7 +8,6 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { UserModule } from './modules/user/user.module';
 import { CryptoKeysModule } from './modules/crypto-keys/crypto-keys.module';
-import { TransactionsModule } from './modules/transactions/transactions.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { OtpModule } from './modules/otp/otp.module';
 import { AuthMiddleware } from './modules/auth/middlewares/auth.middleware';
@@ -19,6 +18,7 @@ import { validationSchema } from 'config/validation';
 import { CoreModule } from './common/modules/core/core.module';
 import { UserSessionService } from './modules/user-session/user-session.service';
 import { UserSessionModule } from './modules/user-session/user-session.module';
+import { TransactionModule } from './modules/transaction/transaction.module';
 require('dotenv').config();
 
 const cookieSession = require('cookie-session');
@@ -41,11 +41,11 @@ const cookieSession = require('cookie-session');
     TypeOrmModule.forRoot(),
     UserModule,
     CryptoKeysModule,
-    TransactionsModule,
     AuthModule,
     OtpModule,
     CoreModule,
     UserSessionModule,
+    TransactionModule,
   ],
   controllers: [AppController],
   providers: [
