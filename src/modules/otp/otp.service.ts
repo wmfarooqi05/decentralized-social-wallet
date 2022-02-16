@@ -1,6 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { JWT_USER_TYPE } from 'src/common/modules/jwt/jwt-payload';
 import { SendgridService } from 'src/common/services/email.service';
 import { TwilioService } from 'src/common/services/twilio.service';
 import { newAccountOtpEmailFormat, NEW_ACCOUNT_EMAIL, NEW_ACCOUNT_SMS } from 'src/constants/emails';

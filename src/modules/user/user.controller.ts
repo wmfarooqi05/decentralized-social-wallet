@@ -6,20 +6,26 @@ import {
   Delete,
   Param,
   NotFoundException,
+  Put,
+  UseGuards,
+  Req,
 } from '@nestjs/common';
 import { UpdateUserDto } from './dtos/update-user.dto';
 import { UserService } from './user.service';
 import { Serialize } from '../../interceptors/serialize.interceptor';
 import { UserDto } from './dtos/user.dto';
-import { User } from './user.entity';
+import { User, UserRole } from './user.entity';
 import Errors from 'src/constants/errors';
 import { Roles } from 'src/common/modules/roles/roles.decorator';
-import { Role } from 'src/common/modules/roles/roles.enum';
 import { RolesGuard } from 'src/common/modules/roles/roles.guard';
+import { UpdateUserFullNameDto } from './dtos/update-user-fullname.dto';
+import { AuthGuard } from '@nestjs/passport';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { JwtAuthGuard } from 'src/common/modules/jwt/jwt-auth.guard';
+import RequestWithUser from '../auth/interfaces/request-with-user';
 // import { RolesGuard } from 'src/common/modules/roles/roles.guard';
 
 // @TODO: change this with ADMIN
-@Roles(Role.USER_ROLE)
 @Controller('user')
 @Serialize(UserDto)
 export class UserController {
@@ -28,6 +34,7 @@ export class UserController {
   ) {}
 
   @Get('/:id')
+  @Roles(UserRole.ADMIN)
   async findUser(@Param('id') id: string): Promise<User> {
     const user = await this.userService.findOneById(id);
     if (!user) {
@@ -37,17 +44,35 @@ export class UserController {
   }
 
   @Get()
+  @Roles(UserRole.ADMIN)
   findAllUser() {
     return this.userService.findAll();
   }
 
+  @Get('/whoami')
+  // @UseGuards(AuthGuard)
+  whoAmI(@CurrentUser() user: User) {
+    return user;
+  }
+
   @Delete('/:id')
+  @Roles(UserRole.ADMIN)
   removeUser(@Param('id') id: string) {
     return this.userService.remove(id);
   }
 
+  // Remove this later
   @Patch('/:id')
+  @Roles(UserRole.ADMIN)
   updateUser(@Param('id') id: string, @Body() body: UpdateUserDto) {
     return this.userService.update(id, body);
+  }
+
+  @Put('update-fullname')
+  @UseGuards(JwtAuthGuard)
+  updateUserFullName(@Req() req: RequestWithUser, @Body() { fullName }: UpdateUserFullNameDto) {
+    return this.userService.updateWithUsername(req.user.username, {
+      fullName
+    });
   }
 }

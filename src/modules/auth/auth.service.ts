@@ -21,6 +21,8 @@ import { ValidateOTPDTO } from './dtos/validate-otp.dto';
 import { TokenType } from '../otp/otp.entity';
 import { ResetPasswordDTO } from './dtos/reset-password.dto';
 import { UserSessionService } from '../user-session/user-session.service';
+import errors from 'src/constants/errors';
+import { IUser_Jwt } from 'src/common/modules/jwt/jwt-payload.interface';
 
 @Injectable()
 export class AuthService {
@@ -34,41 +36,21 @@ export class AuthService {
     private readonly userSessionService: UserSessionService,
   ) {}
 
-  async signup(
-    email: string,
-    phoneNumber: string,
-    password: string,
-    fullName: string,
-  ): Promise<User> {
-    // See if phoneNumber is in use
-    if (email) {
-      const user = await this.userService.findByEmail(email);
-      if (user) {
-        throw new ForbiddenException(Errors.EMAIL_ALREADY_IN_USE);
-      }
-    } else if (phoneNumber) {
-      const user = await this.userService.findByPhoneNumber(phoneNumber);
-      if (user) {
-        throw new ForbiddenException(Errors.PHONE_NUMBER_ALREADY_IN_USE);
-      }
+  async signup(req: Request, res: Response, username: string): Promise<User> {
+    // Check if username already exists
+    const exists = await this.userRepository.findOne({
+      username,
+    });
+
+    if (exists) {
+      throw new ForbiddenException(errors.USERNAME_ALREADY_EXISTS);
     }
 
-    // Create a new user and save it
-    const newUser = await this.userService.create(
-      email,
-      phoneNumber,
-      password,
-      fullName,
-    );
+    const user = await this.userService.create(username);
 
-    await this.otpService.generateAndSendOTP(
-      newUser,
-      TokenType.ACCOUNT_REGISTER,
-    );
-    return newUser;
+    await this.generateAndAttachJwtAndRefreshToken(req, res, user);
+    return user;
   }
-
-  async verifiySignupOTP() {}
 
   async signin(
     request: Request,
@@ -82,8 +64,6 @@ export class AuthService {
     if (!user) {
       throw new NotFoundException('user not found');
     }
-
-    await this.passwordService.validatePassword(password, user.password);
 
     const jwtToken = this.jwtService.sign({
       email: user.email,
@@ -119,60 +99,9 @@ export class AuthService {
     return updatedUser;
   }
 
-  async forgotPassword(
-    email?: string, phoneNumber?: string,
-  ): Promise<any> {
-    if (!email && !phoneNumber) {
-      throw new BadRequestException('Email or Phone Number is required.');
-    }
-    const user: User = await this.userService.findUser({ email, phoneNumber });
-
-    if (!user) {
-      throw new NotFoundException('No User found for given Email/Phone.');
-    }
-
-    await this.otpService.generateAndSendOTP(user, TokenType.FORGOT_PASSWORD);
-  }
-
-  async changePassword(reqUser: any, body: ChangePasswordDTO): Promise<any> {
-    const user: User = await this.userService.findUser(reqUser);
-    if (!user) {
-      throw new NotFoundException('No User found for given Email/Phone.');
-    }
-    const passwordValid = await this.passwordService.validatePassword(
-      body.oldPassword,
-      user.password,
-    );
-
-    if (!passwordValid) {
-      throw new ForbiddenException(Errors.PASSWORD_INCORRECT);
-    }
-
-    const newPasswordHash = await this.passwordService.hashPassword(
-      body.newPassword,
-    );
-    return this.userRepository.update(user.id, { password: newPasswordHash });
-  }
-
-  async validateOTPAndResetPassword(payload: ResetPasswordDTO) {
-    const user: User = await this.userService.findUser(payload);
-    if (!user) {
-      throw new NotFoundException('No User found for given Email/Phone.');
-    }
-
-    const validOTP = await this.otpService.validateOTP(user.id, payload.otp);
-    if (!validOTP) {
-      throw new GoneException('OTP expired or invalid');
-    }
-
-    const newPasswordHash = await this.passwordService.hashPassword(
-      payload.newPassword,
-    );
-    await this.userRepository.update(user.id, { password: newPasswordHash });
-    await this.otpService.invalidateAllTokens(
-      user.id,
-      TokenType.FORGOT_PASSWORD,
-    );
+  async checkUsernameAvailable(username): Promise<boolean> {
+    const exists = await this.userRepository.findOne({ username });
+    return exists ? true : false;
   }
 
   async validateOTP(payload: ValidateOTPDTO, response: Response) {
@@ -206,5 +135,22 @@ export class AuthService {
 
   async logout(userId, refreshToken) {
     return this.userSessionService.logout(userId, refreshToken);
+  }
+
+  async generateAndAttachJwtAndRefreshToken(req: Request, res: Response, user: User) {
+    const jwtPayload: IUser_Jwt = {
+      fullName: user.fullName,
+      role: user.role,
+      username: user.username,
+      userStatus: user.userStatus,
+    }
+
+    const jwtToken = this.jwtService.sign(jwtPayload);
+    const refreshToken = await this.userSessionService.generateRefreshToken(
+      user,
+      req.ip,
+    );
+    res.cookie('access-token', jwtToken, { httpOnly: true });
+    res.cookie('refresh-token', refreshToken, { httpOnly: true });
   }
 }

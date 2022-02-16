@@ -9,8 +9,9 @@ import {
   HttpStatus,
   HttpCode,
 } from '@nestjs/common';
-import { CreateUserDto } from './dtos/create-user.dto';
+import { UsernameDTO } from './dtos/username.dto';
 import { CurrentUser } from './decorators/current-user.decorator';
+import { IUser_Jwt } from '../../common/modules/jwt/jwt-payload.interface';
 import { User } from '../user/user.entity';
 import {
   ApiBody,
@@ -51,13 +52,13 @@ export class AuthController {
   }
 
   @Post('/signup')
-  async createUser(@Body() body: CreateUserDto) {
-    return this.authService.signup(
-      body.email,
-      body.phoneNumber,
-      body.password,
-      body.fullName,
-    );
+  async createUser(
+    @Req() req: Request,
+    @Res() res: Response,
+    @Body() { username }: UsernameDTO,
+  ) {
+    const user = await this.authService.signup(req, res, username);
+    res.status(HttpStatus.CREATED).json(user);
   }
 
   @Post('/signin')
@@ -85,19 +86,13 @@ export class AuthController {
   }
 
   @Post('/complete-signup-with-otp')
-  async completeSignupWithOTP(
-    @Body() { otp, userId }: CompleteSignupWithDTO,
-  ) {
+  async completeSignupWithOTP(@Body() { otp, userId }: CompleteSignupWithDTO) {
     return this.authService.completeSignupWithOTP(userId, otp);
   }
 
-  @Post('/forgot-password')
-  // @Roles(Role.ADMIN_ROLE, Role.TEMP_PASSWORD_RESET_ROLE, Role.USER_ROLE)
-  async forgotPassword(
-    @Body() { email, phoneNumber }: ForgotPasswordDto,
-    @Res({ passthrough: true }) response: Response,
-  ) {
-    return await this.authService.forgotPassword(email, phoneNumber);
+  @Post('/check-username-available')
+  async checkUsernameAvailable(@Body() { username }: UsernameDTO) {
+    return this.authService.checkUsernameAvailable(username);
   }
 
   /**
@@ -110,36 +105,6 @@ export class AuthController {
     @Res({ passthrough: true }) response: Response,
   ) {
     return this.authService.validateOTP(body, response);
-  }
-
-  /**
-   * @param body
-   * @param response
-   */
-  @Post('/change-password')
-  @Roles(Role.ADMIN_ROLE, Role.USER_ROLE)
-  async changePassword(
-    @Req() req: Request,
-    @Body() body: ChangePasswordDTO,
-    @Res({ passthrough: true }) response: Response,
-  ) {
-    const { user } = req;
-    await this.authService.changePassword(user, body);
-    response.status(HttpStatus.OK).json({
-      message: 'Password Updated Successfully.',
-    });
-  }
-
-  @Post('/reset-password')
-  @Roles(Role.TEMP_PASSWORD_RESET_ROLE)
-  async resetPassword(
-    @Body() body: ResetPasswordDTO,
-    @Res({ passthrough: true }) response: Response,
-  ) {
-    await this.authService.validateOTPAndResetPassword(body);
-    response.status(HttpStatus.OK).json({
-      message: 'Password Updated Successfully.',
-    });
   }
 
   @HttpCode(HttpStatus.OK)
