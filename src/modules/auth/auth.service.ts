@@ -101,7 +101,7 @@ export class AuthService {
 
   async checkUsernameAvailable(username): Promise<boolean> {
     const exists = await this.userRepository.findOne({ username });
-    return exists ? true : false;
+    return exists ? false : true;
   }
 
   async validateOTP(payload: ValidateOTPDTO, response: Response) {
