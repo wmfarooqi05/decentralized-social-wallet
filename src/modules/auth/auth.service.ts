@@ -1,28 +1,24 @@
 import {
-  BadRequestException,
   ForbiddenException,
   GoneException,
   Injectable,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
-import { PasswordService } from 'src/modules/auth/password.service';
 import { UserService } from '../user/user.service';
 import { User, UserStatus } from '../user/user.entity';
 import { JwtService } from '@nestjs/jwt';
 import { Request, Response } from 'express';
 import { UserDto } from '../user/dtos/user.dto';
-import { ForgotPasswordDto } from '../auth/dtos/forgot-password.dto';
-import Errors from 'src/constants/errors';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { OtpService } from '../otp/otp.service';
-import { ChangePasswordDTO } from './dtos/change-password.dto';
 import { ValidateOTPDTO } from './dtos/validate-otp.dto';
-import { TokenType } from '../otp/otp.entity';
-import { ResetPasswordDTO } from './dtos/reset-password.dto';
+import { TokenType, TransportType } from '../otp/otp.entity';
 import { UserSessionService } from '../user-session/user-session.service';
 import errors from 'src/constants/errors';
-import { IUser_Jwt } from 'src/common/modules/jwt/jwt-payload.interface';
+import { IUserJwt } from 'src/common/modules/jwt/jwt-payload.interface';
+import { JwtAndRefreshToken, UserWithTokens } from './interfaces';
 
 @Injectable()
 export class AuthService {
@@ -30,13 +26,16 @@ export class AuthService {
     // @TODO: remove user Repo and call user service instead
     @InjectRepository(User) private userRepository: Repository<User>,
     private readonly userService: UserService,
-    private readonly passwordService: PasswordService,
     private readonly jwtService: JwtService,
     private readonly otpService: OtpService,
     private readonly userSessionService: UserSessionService,
   ) {}
 
-  async signup(req: Request, res: Response, username: string): Promise<User> {
+  async signup(
+    req: Request,
+    res: Response,
+    username: string,
+  ): Promise<UserWithTokens> {
     // Check if username already exists
     const exists = await this.userRepository.findOne({
       username,
@@ -46,17 +45,16 @@ export class AuthService {
       throw new ForbiddenException(errors.USERNAME_ALREADY_EXISTS);
     }
 
-    const user = await this.userService.create(username);
-
-    await this.generateAndAttachJwtAndRefreshToken(req, res, user);
-    return user;
+    const user: User = await this.userService.create(username);
+    const tokens: JwtAndRefreshToken =
+      await this.generateAndAttachJwtAndRefreshToken(req, res, user);
+    return Object.assign({}, user, tokens);
   }
 
   async signin(
     request: Request,
     email: string,
     phoneNumber: string,
-    password: string,
     response: Response,
   ): Promise<UserDto> {
     const user: User = await this.userService.findUser({ email, phoneNumber });
@@ -137,13 +135,17 @@ export class AuthService {
     return this.userSessionService.logout(userId, refreshToken);
   }
 
-  async generateAndAttachJwtAndRefreshToken(req: Request, res: Response, user: User) {
-    const jwtPayload: IUser_Jwt = {
+  async generateAndAttachJwtAndRefreshToken(
+    req: Request,
+    res: Response,
+    user: User,
+  ): Promise<JwtAndRefreshToken> {
+    const jwtPayload: IUserJwt = {
       fullName: user.fullName,
       role: user.role,
       username: user.username,
       userStatus: user.userStatus,
-    }
+    };
 
     const jwtToken = this.jwtService.sign(jwtPayload);
     const refreshToken = await this.userSessionService.generateRefreshToken(
@@ -152,5 +154,81 @@ export class AuthService {
     );
     res.cookie('access-token', jwtToken, { httpOnly: true });
     res.cookie('refresh-token', refreshToken, { httpOnly: true });
+    return {
+      jwtToken,
+      refreshToken,
+    };
+  }
+
+  async linkEmail(username: string, email: string) {
+    const user = await this.userService.updateWithUsername(username, {
+      email,
+      isEmailVerified: false,
+    });
+
+    return this.otpService.generateAndSendOTP(
+      user,
+      TokenType.LINK_EMAIL,
+      [TransportType.EMAIL],
+      email,
+    );
+  }
+
+  async linkPhoneNumber(username: string, phoneNumber: string) {
+    const user = await this.userService.updateWithUsername(username, {
+      phoneNumber,
+      isPhoneNumberVerified: false,
+    });
+
+    return this.otpService.generateAndSendOTP(
+      user,
+      TokenType.LINK_PHONE_NUMBER,
+      [TransportType.SMS],
+      phoneNumber,
+    );
+  }
+
+  async completeEmailUsingOtp(username: string, email: string, otp: string) {
+    const user = await this.userService.findByUsername(username);
+    const otpItem = await this.otpService.findOtpCodeByIdAndType(
+      otp,
+      TokenType.LINK_EMAIL,
+      user.id,
+      email,
+    );
+
+    if (!otp || otpItem?.token !== otp) {
+      throw new Error('Expired or invalid OTP');
+    }
+
+    await this.userService.updateWithUsername(username, {
+      isEmailVerified: true,
+    });
+
+    await this.otpService.invalidateAllTokens(user.id, TokenType.LINK_EMAIL);
+  }
+
+  async completePhoneUsingOtp(
+    username: string,
+    phoneNumber: string,
+    otp: string,
+  ) {
+    const user = await this.userService.findByUsername(username);
+    const otpItem = await this.otpService.findOtpCodeByIdAndType(
+      otp,
+      TokenType.LINK_PHONE_NUMBER,
+      user.id,
+      phoneNumber,
+    );
+
+    if (!otp || otpItem?.token !== otp) {
+      throw new UnauthorizedException('Expired or invalid OTP');
+    }
+
+    await this.userService.updateWithUsername(username, {
+      isPhoneNumberVerified: true,
+    });
+
+    await this.otpService.invalidateAllTokens(user.id, TokenType.LINK_PHONE_NUMBER);
   }
 }

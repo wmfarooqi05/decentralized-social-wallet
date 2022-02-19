@@ -8,10 +8,10 @@ import {
   Res,
   HttpStatus,
   HttpCode,
+  UseGuards,
 } from '@nestjs/common';
 import { UsernameDTO } from './dtos/username.dto';
 import { CurrentUser } from './decorators/current-user.decorator';
-import { IUser_Jwt } from '../../common/modules/jwt/jwt-payload.interface';
 import { User } from '../user/user.entity';
 import {
   ApiBody,
@@ -22,17 +22,17 @@ import { Request, Response } from 'express';
 import { AuthService } from './auth.service';
 import { UserDto } from '../user/dtos/user.dto';
 import { Serialize } from 'src/interceptors/serialize.interceptor';
-import { ForgotPasswordDto } from './dtos/forgot-password.dto';
 import { SigninDTO } from './dtos/signin.dto';
-import { Roles } from 'src/common/modules/roles/roles.decorator';
-import { Role } from 'src/common/modules/roles/roles.enum';
-import { ChangePasswordDTO } from './dtos/change-password.dto';
 import { ValidateOTPDTO } from './dtos/validate-otp.dto';
-import { ResetPasswordDTO } from './dtos/reset-password.dto';
 import { LogoutDTO } from './dtos/logout.dto';
 import { RefreshTokenDTO } from './dtos/refresh-token.dto';
 import { CompleteSignupWithDTO } from './dtos/complete-signup-with-otp.dto';
 import { ResendOTPDTO } from './dtos/resend-otp-dto';
+import { GenerateOtpToLinkEmail } from './dtos/generate-otp-to-link-email.dto';
+import { GenerateOtpToLinkPhone } from './dtos/generate-otp-to-link-phone.dto';
+import { JwtAuthGuard } from 'src/common/modules/jwt/jwt-auth.guard';
+import { CompletePhoneLinking } from './dtos/complete-phone-linking';
+import { CompleteEmailLinking } from './dtos/complete-email-linking';
 
 @Controller('auth')
 // This decorator will exclude password and other secrets on basis of UserDTO
@@ -75,7 +75,6 @@ export class AuthController {
       request,
       body.email,
       body.phoneNumber,
-      body.password,
       response,
     );
   }
@@ -119,5 +118,51 @@ export class AuthController {
   async refreshToken(@Body() body: RefreshTokenDTO) {
     const { jwtToken, refreshToken } = body;
     return this.authService.refreshToken(jwtToken, refreshToken);
+  }
+
+  @Post('/link-email')
+  @UseGuards(JwtAuthGuard)
+  async linkEmail(
+    @Req() { currentUser }: Request,
+    @Body() { email }: GenerateOtpToLinkEmail,
+  ) {
+    return this.authService.linkEmail(currentUser.username, email);
+  }
+
+  @Post('/link-phone-number')
+  @UseGuards(JwtAuthGuard)
+  async linkPhoneNumber(
+    @Req() { currentUser }: Request,
+    @Body() { phoneNumber }: GenerateOtpToLinkPhone,
+  ) {
+    return this.authService.linkPhoneNumber(currentUser.username, phoneNumber);
+  }
+
+  @Post('/complete-email-linking')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async completeEmailUsingOtp(
+    @Req() { currentUser }: Request,
+    @Body() { email, otp }: CompleteEmailLinking,
+  ) {
+    return this.authService.completeEmailUsingOtp(
+      currentUser.username,
+      email,
+      otp,
+    );
+  }
+
+  @Post('/complete-phone-linking')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async completePhoneUsingOtp(
+    @Req() { currentUser }: Request,
+    @Body() { phoneNumber, otp }: CompletePhoneLinking,
+  ) {
+    return this.authService.completePhoneUsingOtp(
+      currentUser.username,
+      phoneNumber,
+      otp,
+    );
   }
 }

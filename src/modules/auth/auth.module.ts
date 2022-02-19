@@ -4,7 +4,6 @@ import { UserService } from '../user/user.service';
 import { AuthService } from '../auth/auth.service';
 import { PasswordService } from '../auth/password.service';
 import { User } from '../user/user.entity';
-import { CurrentUserMiddleware } from '../auth/middlewares/current-user.middleware';
 import { AuthController } from './auth.controller';
 import { OtpModule } from '../otp/otp.module';
 import { UserSessionService } from '../user-session/user-session.service';
@@ -32,7 +31,7 @@ import { UserSession } from '../user-session/user-session.entity';
 })
 export class AuthModule {
 
-  configure(consumer: MiddlewareConsumer) {
-    consumer.apply(CurrentUserMiddleware).forRoutes('*');
-  }
+  // configure(consumer: MiddlewareConsumer) {
+  //   consumer.apply(CurrentUserMiddleware).forRoutes('*');
+  // }
 }

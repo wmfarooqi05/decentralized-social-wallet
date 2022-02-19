@@ -1,6 +1,5 @@
 import { Body, Controller, Get, Param, Post, Put } from '@nestjs/common';
 import { Roles } from 'src/common/modules/roles/roles.decorator';
-import { Role } from 'src/common/modules/roles/roles.enum';
 import { CreateTransactionDTO } from './dto/create-transaction.dto';
 import { UpdateTransactionDTO } from './dto/update-transaction.dto';
 import { TransactionService } from './transaction.service';

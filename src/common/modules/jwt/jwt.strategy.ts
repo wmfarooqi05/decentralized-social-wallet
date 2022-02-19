@@ -1,7 +1,7 @@
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { PassportStrategy } from '@nestjs/passport';
 import { Injectable } from '@nestjs/common';
-import { IUser_Jwt, IUser_Jwt_Keys } from './jwt-payload.interface';
+import { IUserJwt, IUser_Jwt_Keys } from './jwt-payload.interface';
 import * as _ from "lodash";
 import { JWT_CONSTANTS } from 'src/constants/jwt';
 import { ConfigService } from '@nestjs/config';
@@ -17,9 +17,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
   
-
   async validate(payload: any) {
-    const jwtPayload: IUser_Jwt = _.pick(payload, IUser_Jwt_Keys);
+    const jwtPayload: IUserJwt = _.pick(payload, IUser_Jwt_Keys);
     return jwtPayload;
   }
 }
