@@ -16,19 +16,10 @@ export class UserService {
   ) {}
 
   async create(
-    email: string,
-    phoneNumber: string,
-    password: string,
-    fullName: string,
+    username: string
   ) {
-    // Hash the user password
-    const hashedPassword = await this.passwordService.hashPassword(password);
-
     const user = this.userRepository.create({
-      email,
-      phoneNumber,
-      password: hashedPassword,
-      fullName,
+      username
     });
 
     return this.userRepository.save(user);
@@ -45,14 +36,20 @@ export class UserService {
     return this.userRepository.findOne(id);
   }
 
-  async findUser(user: { email?: string, phoneNumber?: string}): Promise<User> {
-    if (user.email) {
+  async findUser(user: { username?: string, email?: string, phoneNumber?: string}): Promise<User> {
+    if (user.username) {
+      return this.findByUsername(user.username);
+    } else if (user.email) {
       return this.findByEmail(user.email);
     } else if (user.phoneNumber) {
       return this.findByPhoneNumber(user.phoneNumber)
     } else {
       throw new BadRequestException('No Email/Phone Number provided');
     }
+  }
+
+  async findByUsername(username: string) {
+    return this.userRepository.findOne({ username });
   }
 
   async findByEmail(email: string) {
@@ -63,8 +60,17 @@ export class UserService {
     return this.userRepository.findOne({ phoneNumber });
   }
 
-  async update(id: string, attrs: Partial<Omit<User, "password">>) {
+  async update(id: string, attrs: Partial<User>) {
     const user: User = await this.findOneById(id);
+    if (!user) {
+      throw new NotFoundException('user not found');
+    }
+    Object.assign(user, attrs);
+    return this.userRepository.save(user);
+  }
+
+  async updateWithUsername(username: string, attrs: Partial<Omit<User, 'id' | 'username'>>) {
+    const user: User = await this.findByUsername(username);
     if (!user) {
       throw new NotFoundException('user not found');
     }

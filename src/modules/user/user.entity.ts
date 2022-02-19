@@ -1,4 +1,3 @@
-import { Exclude } from 'class-transformer';
 import {
   AfterInsert,
   AfterRemove,
@@ -21,20 +20,21 @@ export enum UserStatus {
   UNVERIFIED = 'UNVERIFIED',
 }
 
-@Entity()
+@Entity({
+  
+})
 export class User {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @Column({ nullable: false, unique: true })
+  username: string;
 
   @Column({ nullable: true })
   email: string;
 
   @Column({ nullable: true })
   phoneNumber: string;
-
-  @Column()
-  @Exclude({ toPlainOnly: true })
-  password: string;
 
   @Column({ nullable: true })
   fullName: string;
@@ -58,13 +58,9 @@ export class User {
   @Column({
     type: 'enum',
     enum: UserStatus,
-    default: UserStatus.UNVERIFIED,
+    default: UserStatus.ACTIVE,
   })
   userStatus: UserStatus;
-
-  @Column({ nullable: true })
-  @Exclude()
-  refresh_token?: string;
 
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   createdAt: Timestamp;

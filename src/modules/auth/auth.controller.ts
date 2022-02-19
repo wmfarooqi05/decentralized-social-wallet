@@ -8,8 +8,9 @@ import {
   Res,
   HttpStatus,
   HttpCode,
+  UseGuards,
 } from '@nestjs/common';
-import { CreateUserDto } from './dtos/create-user.dto';
+import { UsernameDTO } from './dtos/username.dto';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { User } from '../user/user.entity';
 import {
@@ -21,17 +22,17 @@ import { Request, Response } from 'express';
 import { AuthService } from './auth.service';
 import { UserDto } from '../user/dtos/user.dto';
 import { Serialize } from 'src/interceptors/serialize.interceptor';
-import { ForgotPasswordDto } from './dtos/forgot-password.dto';
 import { SigninDTO } from './dtos/signin.dto';
-import { Roles } from 'src/common/modules/roles/roles.decorator';
-import { Role } from 'src/common/modules/roles/roles.enum';
-import { ChangePasswordDTO } from './dtos/change-password.dto';
 import { ValidateOTPDTO } from './dtos/validate-otp.dto';
-import { ResetPasswordDTO } from './dtos/reset-password.dto';
 import { LogoutDTO } from './dtos/logout.dto';
 import { RefreshTokenDTO } from './dtos/refresh-token.dto';
 import { CompleteSignupWithDTO } from './dtos/complete-signup-with-otp.dto';
 import { ResendOTPDTO } from './dtos/resend-otp-dto';
+import { GenerateOtpToLinkEmail } from './dtos/generate-otp-to-link-email.dto';
+import { GenerateOtpToLinkPhone } from './dtos/generate-otp-to-link-phone.dto';
+import { JwtAuthGuard } from 'src/common/modules/jwt/jwt-auth.guard';
+import { CompletePhoneLinking } from './dtos/complete-phone-linking';
+import { CompleteEmailLinking } from './dtos/complete-email-linking';
 
 @Controller('auth')
 // This decorator will exclude password and other secrets on basis of UserDTO
@@ -51,13 +52,13 @@ export class AuthController {
   }
 
   @Post('/signup')
-  async createUser(@Body() body: CreateUserDto) {
-    return this.authService.signup(
-      body.email,
-      body.phoneNumber,
-      body.password,
-      body.fullName,
-    );
+  async createUser(
+    @Req() req: Request,
+    @Res() res: Response,
+    @Body() { username }: UsernameDTO,
+  ) {
+    const user = await this.authService.signup(req, res, username);
+    res.status(HttpStatus.CREATED).json(user);
   }
 
   @Post('/signin')
@@ -74,7 +75,6 @@ export class AuthController {
       request,
       body.email,
       body.phoneNumber,
-      body.password,
       response,
     );
   }
@@ -85,19 +85,13 @@ export class AuthController {
   }
 
   @Post('/complete-signup-with-otp')
-  async completeSignupWithOTP(
-    @Body() { otp, userId }: CompleteSignupWithDTO,
-  ) {
+  async completeSignupWithOTP(@Body() { otp, userId }: CompleteSignupWithDTO) {
     return this.authService.completeSignupWithOTP(userId, otp);
   }
 
-  @Post('/forgot-password')
-  // @Roles(Role.ADMIN_ROLE, Role.TEMP_PASSWORD_RESET_ROLE, Role.USER_ROLE)
-  async forgotPassword(
-    @Body() { email, phoneNumber }: ForgotPasswordDto,
-    @Res({ passthrough: true }) response: Response,
-  ) {
-    return await this.authService.forgotPassword(email, phoneNumber);
+  @Post('/check-username-available')
+  async checkUsernameAvailable(@Body() { username }: UsernameDTO) {
+    return this.authService.checkUsernameAvailable(username);
   }
 
   /**
@@ -112,36 +106,6 @@ export class AuthController {
     return this.authService.validateOTP(body, response);
   }
 
-  /**
-   * @param body
-   * @param response
-   */
-  @Post('/change-password')
-  @Roles(Role.ADMIN_ROLE, Role.USER_ROLE)
-  async changePassword(
-    @Req() req: Request,
-    @Body() body: ChangePasswordDTO,
-    @Res({ passthrough: true }) response: Response,
-  ) {
-    const { user } = req;
-    await this.authService.changePassword(user, body);
-    response.status(HttpStatus.OK).json({
-      message: 'Password Updated Successfully.',
-    });
-  }
-
-  @Post('/reset-password')
-  @Roles(Role.TEMP_PASSWORD_RESET_ROLE)
-  async resetPassword(
-    @Body() body: ResetPasswordDTO,
-    @Res({ passthrough: true }) response: Response,
-  ) {
-    await this.authService.validateOTPAndResetPassword(body);
-    response.status(HttpStatus.OK).json({
-      message: 'Password Updated Successfully.',
-    });
-  }
-
   @HttpCode(HttpStatus.OK)
   @Post('/logout')
   async logout(@Body() body: LogoutDTO) {
@@ -154,5 +118,51 @@ export class AuthController {
   async refreshToken(@Body() body: RefreshTokenDTO) {
     const { jwtToken, refreshToken } = body;
     return this.authService.refreshToken(jwtToken, refreshToken);
+  }
+
+  @Post('/link-email')
+  @UseGuards(JwtAuthGuard)
+  async linkEmail(
+    @Req() { currentUser }: Request,
+    @Body() { email }: GenerateOtpToLinkEmail,
+  ) {
+    return this.authService.linkEmail(currentUser.username, email);
+  }
+
+  @Post('/link-phone-number')
+  @UseGuards(JwtAuthGuard)
+  async linkPhoneNumber(
+    @Req() { currentUser }: Request,
+    @Body() { phoneNumber }: GenerateOtpToLinkPhone,
+  ) {
+    return this.authService.linkPhoneNumber(currentUser.username, phoneNumber);
+  }
+
+  @Post('/complete-email-linking')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async completeEmailUsingOtp(
+    @Req() { currentUser }: Request,
+    @Body() { email, otp }: CompleteEmailLinking,
+  ) {
+    return this.authService.completeEmailUsingOtp(
+      currentUser.username,
+      email,
+      otp,
+    );
+  }
+
+  @Post('/complete-phone-linking')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async completePhoneUsingOtp(
+    @Req() { currentUser }: Request,
+    @Body() { phoneNumber, otp }: CompletePhoneLinking,
+  ) {
+    return this.authService.completePhoneUsingOtp(
+      currentUser.username,
+      phoneNumber,
+      otp,
+    );
   }
 }
