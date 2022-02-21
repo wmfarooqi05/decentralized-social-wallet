@@ -7,6 +7,7 @@ import { User } from './user.entity';
 import { OtpModule } from '../otp/otp.module';
 import { SendgridService } from 'src/common/services/email.service';
 import { TwilioService } from 'src/common/services/twilio.service';
+import { GoogleCloudService } from 'src/common/services/google-cloud/google-cloud.service';
 
 @Module({
   imports: [
@@ -14,7 +15,7 @@ import { TwilioService } from 'src/common/services/twilio.service';
     OtpModule,
   ],
   controllers: [UserController],
-  providers: [UserService, PasswordService, SendgridService, TwilioService],
+  providers: [UserService, PasswordService, SendgridService, TwilioService, GoogleCloudService],
 })
 export class UserModule {
   // move this to app module

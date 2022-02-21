@@ -2,11 +2,15 @@ import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import * as dotenv from 'dotenv';
+import { CustomLogger } from './common/services/custom-logger/custom-logger.service';
+import * as path from 'path';
 
 dotenv.config();
 declare const module: any;
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    logger: new CustomLogger(),
+  });
   (app as any).set('etag', false);
 
   app.setGlobalPrefix('api');

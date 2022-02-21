@@ -9,6 +9,8 @@ import {
   Put,
   UseGuards,
   Req,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
 import { UpdateUserDto } from './dtos/update-user.dto';
 import { UserService } from './user.service';
@@ -23,10 +25,13 @@ import { AuthGuard } from '@nestjs/passport';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from 'src/common/modules/jwt/jwt-auth.guard';
 import RequestWithUser from '../auth/interfaces/request-with-user';
-// import { RolesGuard } from 'src/common/modules/roles/roles.guard';
+import { ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import 'multer';
 
 // @TODO: change this with ADMIN
 @Controller('user')
+@ApiBearerAuth()
 @Serialize(UserDto)
 export class UserController {
   constructor(
@@ -34,6 +39,8 @@ export class UserController {
   ) {}
 
   @Get('/:id')
+  @ApiOperation({ summary: "Find a user by id" })
+  @ApiBearerAuth()
   @Roles(UserRole.ADMIN)
   async findUser(@Param('id') id: string): Promise<User> {
     const user = await this.userService.findOneById(id);
@@ -74,5 +81,12 @@ export class UserController {
     return this.userService.updateWithUsername(req.user.username, {
       fullName
     });
+  }
+
+  @Put('update-profile-picture')
+  // @UseGuards(JwtAuthGuard)
+  @UseInterceptors(FileInterceptor('file'))
+  async updateProfilePicture(@Req() request: RequestWithUser, @UploadedFile() file: Express.Multer.File) {
+    return this.userService.updateProfilePicture(request.currentUser.username, file.buffer, file.mimetype, file.originalname)
   }
 }

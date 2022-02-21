@@ -9,6 +9,7 @@ import { OtpModule } from '../otp/otp.module';
 import { UserSessionService } from '../user-session/user-session.service';
 import { UserSessionModule } from '../user-session/user-session.module';
 import { UserSession } from '../user-session/user-session.entity';
+import { GoogleCloudService } from 'src/common/services/google-cloud/google-cloud.service';
 
 @Module({
   imports: [
@@ -26,7 +27,8 @@ import { UserSession } from '../user-session/user-session.entity';
     AuthService,
     PasswordService,
     UserService,
-    UserSessionService
+    UserSessionService,
+    GoogleCloudService
   ],
 })
 export class AuthModule {
