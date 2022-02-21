@@ -9,6 +9,7 @@ import {
   HttpStatus,
   HttpCode,
   UseGuards,
+  Param,
 } from '@nestjs/common';
 import { UsernameDTO } from './dtos/username.dto';
 import { CurrentUser } from './decorators/current-user.decorator';
@@ -164,5 +165,16 @@ export class AuthController {
       phoneNumber,
       otp,
     );
+  }
+
+  @Post('/get-access-tokens/:username')
+  @HttpCode(HttpStatus.OK)
+  async getAccessTokens(
+    @Req() req: Request,
+    @Res() res: Response,
+    @Param() { username },
+  ) {
+    const payload = await  this.authService.getAccessTokens(req, res, username);
+    res.status(HttpStatus.CREATED).json(payload);
   }
 }

@@ -147,7 +147,9 @@ export class AuthService {
       userStatus: user.userStatus,
     };
 
-    const jwtToken = this.jwtService.sign(jwtPayload);
+    const jwtToken = this.jwtService.sign(jwtPayload, {
+      expiresIn: '365D',
+    });
     const refreshToken = await this.userSessionService.generateRefreshToken(
       user,
       req.ip,
@@ -229,6 +231,14 @@ export class AuthService {
       isPhoneNumberVerified: true,
     });
 
-    await this.otpService.invalidateAllTokens(user.id, TokenType.LINK_PHONE_NUMBER);
+    await this.otpService.invalidateAllTokens(
+      user.id,
+      TokenType.LINK_PHONE_NUMBER,
+    );
+  }
+
+  async getAccessTokens(req, res, username) {
+    const user = await this.userService.findByUsername(username);
+    return this.generateAndAttachJwtAndRefreshToken(req, res, user);
   }
 }

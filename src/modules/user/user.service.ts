@@ -7,19 +7,20 @@ import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './user.entity';
 import { PasswordService } from '../auth/password.service';
+import { GoogleCloudService } from 'src/common/services/google-cloud/google-cloud.service';
+// import {  } from 'uuidv4';
 
 @Injectable()
 export class UserService {
   constructor(
     @InjectRepository(User) private userRepository: Repository<User>,
     private passwordService: PasswordService,
+    private googleCloudService: GoogleCloudService,
   ) {}
 
-  async create(
-    username: string
-  ) {
+  async create(username: string) {
     const user = this.userRepository.create({
-      username
+      username,
     });
 
     return this.userRepository.save(user);
@@ -36,13 +37,17 @@ export class UserService {
     return this.userRepository.findOne(id);
   }
 
-  async findUser(user: { username?: string, email?: string, phoneNumber?: string}): Promise<User> {
+  async findUser(user: {
+    username?: string;
+    email?: string;
+    phoneNumber?: string;
+  }): Promise<User> {
     if (user.username) {
       return this.findByUsername(user.username);
     } else if (user.email) {
       return this.findByEmail(user.email);
     } else if (user.phoneNumber) {
-      return this.findByPhoneNumber(user.phoneNumber)
+      return this.findByPhoneNumber(user.phoneNumber);
     } else {
       throw new BadRequestException('No Email/Phone Number provided');
     }
@@ -69,7 +74,10 @@ export class UserService {
     return this.userRepository.save(user);
   }
 
-  async updateWithUsername(username: string, attrs: Partial<Omit<User, 'id' | 'username'>>) {
+  async updateWithUsername(
+    username: string,
+    attrs: Partial<Omit<User, 'id' | 'username'>>,
+  ) {
     const user: User = await this.findByUsername(username);
     if (!user) {
       throw new NotFoundException('user not found');
@@ -84,5 +92,23 @@ export class UserService {
       throw new NotFoundException('user not found');
     }
     return this.userRepository.remove(user);
+  }
+
+  async updateProfilePicture(
+    username: string,
+    buffer: Buffer,
+    mimetype: string,
+    filename: string,
+  ) {
+    const id = new Date().toISOString();
+    const url = await this.googleCloudService.save(
+      `media/profiles/${id}.${mimetype.split('/')[1]}`,
+      buffer,
+    );
+    await this.updateWithUsername(username, {
+      image: url,
+    });
+
+    return url;
   }
 }
