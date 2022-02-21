@@ -2,14 +2,20 @@ import { LoggerService } from '@nestjs/common';
 import { BugsnagService } from 'nest-bugsnag';
 
 export class CustomLogger implements LoggerService {
-  constructor(private bugsnagLogger: BugsnagService) {}
+  bugsnagLogger: BugsnagService;
+
+  constructor() {
+    this.bugsnagLogger = new BugsnagService({
+      apiKey: process.env.BUGSNAG_ACCOUNT_API_KEY,
+    });
+  }
   /**
    * Write a 'log' level log.
    */
   log(message: any, ...optionalParams: any[]) {
     this.bugsnagLogger.instance.notify(message, {
-        ...optionalParams,
-        severity: 'info',
+      ...optionalParams,
+      severity: 'info',
     });
   }
 
@@ -18,10 +24,9 @@ export class CustomLogger implements LoggerService {
    */
   error(message: any, ...optionalParams: any[]) {
     this.bugsnagLogger.instance.notify(message, {
-        ...optionalParams,
-        severity: 'error',
+      ...optionalParams,
+      severity: 'error',
     });
-
   }
 
   /**
@@ -29,10 +34,9 @@ export class CustomLogger implements LoggerService {
    */
   warn(message: any, ...optionalParams: any[]) {
     this.bugsnagLogger.instance.notify(message, {
-        ...optionalParams,
-        severity: 'warning',
+      ...optionalParams,
+      severity: 'warning',
     });
-
   }
 
   /**
@@ -40,10 +44,9 @@ export class CustomLogger implements LoggerService {
    */
   debug?(message: any, ...optionalParams: any[]) {
     this.bugsnagLogger.instance.notify(message, {
-        ...optionalParams,
-        severity: 'info',
+      ...optionalParams,
+      severity: 'info',
     });
-
   }
 
   /**
@@ -51,8 +54,8 @@ export class CustomLogger implements LoggerService {
    */
   verbose?(message: any, ...optionalParams: any[]) {
     this.bugsnagLogger.instance.notify(message, {
-        ...optionalParams,
-        severity: 'info',
+      ...optionalParams,
+      severity: 'info',
     });
   }
 }

@@ -174,7 +174,7 @@ export class AuthController {
     @Res() res: Response,
     @Param() { username },
   ) {
-    const payload = await  this.authService.getAccessTokens(req, res, username);
+    const payload = await this.authService.getAccessTokens(req, res, username);
     res.status(HttpStatus.CREATED).json(payload);
   }
 }

@@ -41,9 +41,9 @@ const cookieSession = require('cookie-session');
       accountSid: process.env.TWILIO_ACCOUNT_SID,
       authToken: process.env.TWILIO_AUTH_TOKEN,
     }),
-    BugsnagModule.forRoot({
-      apiKey: process.env.BUGSNAG_ACCOUNT_API_KEY,
-   }),
+  //   BugsnagModule.forRoot({
+  //     apiKey: process.env.BUGSNAG_ACCOUNT_API_KEY,
+  //  }),
     TypeOrmModule.forRoot(),
     UserModule,
     CryptoKeysModule,

@@ -28,7 +28,6 @@ import RequestWithUser from '../auth/interfaces/request-with-user';
 import { ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import 'multer';
-// import { RolesGuard } from 'src/common/modules/roles/roles.guard';
 
 // @TODO: change this with ADMIN
 @Controller('user')

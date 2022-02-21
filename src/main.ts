@@ -9,7 +9,7 @@ dotenv.config();
 declare const module: any;
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
-    // logger: new CustomLogger(),
+    logger: new CustomLogger(),
   });
   (app as any).set('etag', false);
 

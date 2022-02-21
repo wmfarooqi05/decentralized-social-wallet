@@ -8,7 +8,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './user.entity';
 import { PasswordService } from '../auth/password.service';
 import { GoogleCloudService } from 'src/common/services/google-cloud/google-cloud.service';
-// import {  } from 'uuidv4';
+import { uuid } from 'uuidv4';
 
 @Injectable()
 export class UserService {
@@ -100,7 +100,7 @@ export class UserService {
     mimetype: string,
     filename: string,
   ) {
-    const id = new Date().toISOString();
+    const id = uuid();
     const url = await this.googleCloudService.save(
       `media/profiles/${id}.${mimetype.split('/')[1]}`,
       buffer,

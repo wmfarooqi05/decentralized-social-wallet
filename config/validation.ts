@@ -21,12 +21,6 @@ export const validationSchema = Joi.object({
   DB_USERNAME: Joi.string().required().label('DB_USERNAME'),
   DB_PASSWORD: Joi.string().required().label('DB_PASSWORD'),
   REFRESH_TOKEN_LENGTH: Joi.number().required().label('REFRESH_TOKEN_LENGTH'),
-  GOOGLE_STORAGE_CLIENT_ID: Joi.string()
-    .required()
-    .label('GOOGLE_STORAGE_CLIENT_ID'),
-  GOOGLE_STORAGE_CLIENT_SECRET: Joi.string()
-    .required()
-    .label('GOOGLE_STORAGE_CLIENT_SECRET'),
   GOOGLE_STORAGE_MEDIA_BUCKET: Joi.string()
     .required()
     .label('GOOGLE_STORAGE_MEDIA_BUCKET'),

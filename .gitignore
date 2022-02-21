@@ -36,4 +36,3 @@ lerna-debug.log*
 !.vscode/launch.json
 !.vscode/extensions.json
 pgdata/
-google-keys.json
