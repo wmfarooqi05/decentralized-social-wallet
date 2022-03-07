@@ -8,5 +8,6 @@ import { UserSessionService } from './user-session.service';
     TypeOrmModule.forFeature([UserSession]),
     ],
   providers: [UserSessionService],
+  exports: [UserSessionService],
 })
 export class UserSessionModule {}

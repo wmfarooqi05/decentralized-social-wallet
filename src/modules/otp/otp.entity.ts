@@ -6,6 +6,8 @@ import {
   Timestamp,
   AfterUpdate,
   AfterInsert,
+  CreateDateColumn,
+  UpdateDateColumn,
 } from 'typeorm';
 import { User } from '../user/user.entity';
 import * as moment from 'moment';
@@ -42,9 +44,12 @@ export class Otp {
 
   @Column({ type: 'enum', enum: TokenType })
   type: TokenType;
+  
+  @CreateDateColumn({ type: "timestamp", default: () => "CURRENT_TIMESTAMP(6)" })
+  createdAt: Date;
 
-  @Column({ type: 'timestamp', default: moment() })
-  createdAt: Timestamp;
+  @UpdateDateColumn({ type: "timestamp", default: () => "CURRENT_TIMESTAMP(6)", onUpdate: "CURRENT_TIMESTAMP(6)" })
+  updatedAt: Date;
 
   @ManyToOne(() => User, (user) => user.id)
   user: User;
