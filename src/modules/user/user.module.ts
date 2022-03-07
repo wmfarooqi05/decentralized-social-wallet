@@ -16,6 +16,7 @@ import { GoogleCloudService } from 'src/common/services/google-cloud/google-clou
   ],
   controllers: [UserController],
   providers: [UserService, PasswordService, SendgridService, TwilioService, GoogleCloudService],
+  exports: [UserService]
 })
 export class UserModule {
   // move this to app module

@@ -23,8 +23,6 @@ import { JwtAndRefreshToken, UserWithTokens } from './interfaces';
 @Injectable()
 export class AuthService {
   constructor(
-    // @TODO: remove user Repo and call user service instead
-    @InjectRepository(User) private userRepository: Repository<User>,
     private readonly userService: UserService,
     private readonly jwtService: JwtService,
     private readonly otpService: OtpService,
@@ -37,9 +35,7 @@ export class AuthService {
     username: string,
   ): Promise<UserWithTokens> {
     // Check if username already exists
-    const exists = await this.userRepository.findOne({
-      username,
-    });
+    const exists = await this.userService.findByUsername(username);
 
     if (exists) {
       throw new ForbiddenException(errors.USERNAME_ALREADY_EXISTS);
@@ -98,7 +94,7 @@ export class AuthService {
   }
 
   async checkUsernameAvailable(username): Promise<boolean> {
-    const exists = await this.userRepository.findOne({ username });
+    const exists = await this.userService.findByUsername(username);
     return exists ? false : true;
   }
 

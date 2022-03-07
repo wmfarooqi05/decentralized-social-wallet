@@ -14,7 +14,6 @@ import { uuid } from 'uuidv4';
 export class UserService {
   constructor(
     @InjectRepository(User) private userRepository: Repository<User>,
-    private passwordService: PasswordService,
     private googleCloudService: GoogleCloudService,
   ) {}
 
@@ -35,6 +34,13 @@ export class UserService {
       return null;
     }
     return this.userRepository.findOne(id);
+  }
+
+  async findByIds(ids: string[]) {
+    if (!ids.length) {
+      return null;
+    }
+    return this.userRepository.findByIds(ids);
   }
 
   async findUser(user: {

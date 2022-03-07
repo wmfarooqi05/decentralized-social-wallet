@@ -10,25 +10,17 @@ import { UserSessionService } from '../user-session/user-session.service';
 import { UserSessionModule } from '../user-session/user-session.module';
 import { UserSession } from '../user-session/user-session.entity';
 import { GoogleCloudService } from 'src/common/services/google-cloud/google-cloud.service';
+import { UserModule } from '../user/user.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User]),
-    TypeOrmModule.forFeature([UserSession]),
-    /**
-     * @DISCUSS
-     * otp service is not being used in AuthModule but code is platform is requiring it to be imported here
-     */
     OtpModule,
     UserSessionModule,
+    UserModule,
   ],
   controllers: [AuthController],
   providers: [
     AuthService,
-    PasswordService,
-    UserService,
-    UserSessionService,
-    GoogleCloudService
   ],
 })
 export class AuthModule {

@@ -3,7 +3,6 @@ import { APP_GUARD, APP_PIPE } from '@nestjs/core';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TwilioModule } from 'nestjs-twilio';
-import { BugsnagModule } from 'nest-bugsnag';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -21,6 +20,9 @@ import { UserSessionService } from './modules/user-session/user-session.service'
 import { UserSessionModule } from './modules/user-session/user-session.module';
 import { TransactionModule } from './modules/transaction/transaction.module';
 import { GoogleCloudService } from './common/services/google-cloud/google-cloud.service';
+import { ChatModule } from './modules/chat/chat.module';
+import { ChatGateway } from './modules/chat/chat.gateway';
+import { WsGuard } from './common/modules/jwt/websocket.guard';
 require('dotenv').config();
 
 const cookieSession = require('cookie-session');
@@ -52,6 +54,7 @@ const cookieSession = require('cookie-session');
     CoreModule,
     UserSessionModule,
     TransactionModule,
+    ChatModule,
   ],
   controllers: [AppController],
   providers: [
@@ -66,7 +69,12 @@ const cookieSession = require('cookie-session');
       provide: APP_GUARD,
       useClass: RolesGuard,
     },
+    {
+      provide: APP_GUARD,
+      useClass: WsGuard,
+    },
     GoogleCloudService,
+    // AppGateway,
     // CustomLoggerService,
   ],
 })
