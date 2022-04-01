@@ -42,6 +42,9 @@ export class AuthService {
     }
 
     const user: User = await this.userService.create(username);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
     const tokens: JwtAndRefreshToken =
       await this.generateAndAttachJwtAndRefreshToken(req, res, user);
     return Object.assign({}, user, tokens);
@@ -137,6 +140,7 @@ export class AuthService {
     user: User,
   ): Promise<JwtAndRefreshToken> {
     const jwtPayload: IUserJwt = {
+      id: user.id,
       fullName: user.fullName,
       role: user.role,
       username: user.username,
@@ -235,6 +239,9 @@ export class AuthService {
 
   async getAccessTokens(req, res, username) {
     const user = await this.userService.findByUsername(username);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
     return this.generateAndAttachJwtAndRefreshToken(req, res, user);
   }
 }

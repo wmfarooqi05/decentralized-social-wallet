@@ -1,23 +1,25 @@
 import { Module } from '@nestjs/common';
-import { ChatGateway } from './chat.gateway';
-// import { ChatroomController } from './chatroom/chatroom.controller';
-// import { ChatroomService } from './chatroom/chatroom.service';
-import { ChatroomModule } from './chatroom/chatroom.module';
-import { ChatMessageModule } from './chat-message/chat-message.module';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { ChatMessage } from './chat-message/chat-message.entity';
-import { ChatMessageController } from './chat-message/chat-message.controller';
-import { ChatMessageService } from './chat-message/chat-message.service';
-import { Chatroom } from './chatroom/chatroom.entity';
-import { UserModule } from '../user/user.module';
-import { ChatroomController } from './chatroom/chatroom.controller';
-import { ChatroomService } from './chatroom/chatroom.service';
+import { ChatGateway } from './socket/chat.gateway';
 import { SocketService } from './socket.service';
-
+import { ChatQueueService } from './redis/chat-queue.service';
+import { BullModule } from '@nestjs/bull';
+import { ChatDBQueueConsumer } from './redis/chat-queue.processor';
+import{ChatMessageModule } from './chat-message/chat-message.module';
+import { ChatroomModule } from './chatroom/chatroom.module';
 @Module({
-  imports: [TypeOrmModule.forFeature([ChatMessage, Chatroom]), UserModule],
-  controllers: [ChatMessageController, ChatroomController],
-  providers: [ChatMessageService, ChatroomService, ChatGateway, SocketService],
-  exports: [ChatMessageService, ChatroomService],
+  imports: [
+    BullModule.registerQueue({
+      name: 'CHAT_QUEUE',
+    }),
+    ChatMessageModule,
+    ChatroomModule,
+  ],
+  controllers: [],
+  providers: [
+    ChatGateway,
+    SocketService,
+    ChatQueueService,
+    ChatDBQueueConsumer,
+  ],
 })
 export class ChatModule {}

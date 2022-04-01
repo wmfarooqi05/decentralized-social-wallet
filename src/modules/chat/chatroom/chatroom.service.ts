@@ -1,6 +1,8 @@
 import {
   BadRequestException,
   ConflictException,
+  forwardRef,
+  Inject,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -13,16 +15,18 @@ import { ChatMessage } from '../chat-message/chat-message.entity';
 import { ChatMessageService } from '../chat-message/chat-message.service';
 import { Chatroom } from './chatroom.entity';
 import { GET_EXISTING_PRIVATE_CHATROOM } from './query/get-existing-private-chatroom';
-import { MESSAGE_TYPE, Reaction, SeenStatuses } from '../chat.types';
+import { MESSAGE_TYPE_ENUM, Reaction, SeenStatuses } from '../chat.types';
 import { paginationHelper } from 'src/common/helpers/pagination';
+import { ChatQueueService } from '../redis/chat-queue.service';
 
 @Injectable()
 export class ChatroomService {
   constructor(
     @InjectRepository(Chatroom)
     private chatroomRepository: Repository<Chatroom>,
-    private chatMessageService: ChatMessageService,
     private userService: UserService,
+    @Inject(forwardRef(() => ChatMessageService))
+    private chatMessageService: ChatMessageService,
   ) {}
 
   async findAllChatrooms(page: string, pageSize: string) {
@@ -62,6 +66,12 @@ export class ChatroomService {
     const chatrooms = await qb.getMany();
     // @TODO Later on, improve the relation logic
     return this.addLastMessagesToChatrooms(chatrooms);
+  }
+
+  async _findChatroomById(id: string) {
+    return await this.chatroomRepository.findOne(id, {
+      relations: ['participants'],
+    });
   }
 
   async findChatroomById(id: string, user: IUserJwt) {
@@ -150,11 +160,12 @@ export class ChatroomService {
     return this.chatroomRepository.save(chatroom);
   }
 
+  // @DEPRECATED: deprecated methods
   async addNewMessage(
     username: string,
     chatroomId: string,
     messageContent: string,
-    messageType: MESSAGE_TYPE,
+    messageType: MESSAGE_TYPE_ENUM,
     messageRandomId?: string,
   ) {
     const user = await this.userService.findByUsername(username);
@@ -175,49 +186,45 @@ export class ChatroomService {
     );
 
     if (newMessage) {
-      await this.updateChatroomOnNewMessage(chatroomId, newMessage);
+      await this.updateChatroomOnNewMessage(newMessage);
     }
 
     return newMessage;
   }
 
-  async updateMessage(
-    chatroomId: string,
-    username: string,
-    messageId: string,
-    messageContent: string,
-    reactions: Reaction[],
-    seenStatuses: SeenStatuses[],
-  ) {
-    const message = await this.chatMessageService.findMessageById(messageId, [
-      'user',
-    ]);
-    if (message.user.username !== username) {
-      throw new UnauthorizedException('User cannot edit this message');
-    }
+  // async addNewMessageViaQueue() {
+  //   this.chatQueueService.saveToDB([
+  //     {
+  //       chatroomId: '1',
+  //       messageContent: 'asads',
+  //       messageRandomId: '123123123',
+  //       messageType: 'IMAGE',
+  //       userId:'1',
+  //     }
+  //   ],
+  //   '1',
+  //   '1',
+  //   )
+  // }
 
-    if (messageContent) {
-      message.messageContent = messageContent;
-    }
+  // async updateMessageViaQueue() {
+  //   this.chatQueueService.updateMessageStatusInDB([
+  //     {
+  //      id:'1', 
+  //       chatroomId: '1',
+  //       messageContent: 'asads',
+  //       messageRandomId: '123123123',
+  //       messageType: 'IMAGE',
+  //       userId:'1',
+  //       reactions:[],
+  //       seenStatuses:[],
+  //       seenTicksCount:0,
+  //     },
+  //   ], 'DELIVERED', '1', '1');
+  // }
 
-    if (reactions) {
-      message.reactions = reactions;
-    }
-
-    if (seenStatuses) {
-      message.seenStatuses = seenStatuses;
-    }
-
-    const updatedMessage = await this.chatMessageService.update(
-      message.id,
-      message,
-    );
-    await this.updateChatroomOnNewMessage(chatroomId, message);
-    return updatedMessage;
-  }
-
-  async updateChatroomOnNewMessage(chatroomId: string, message: ChatMessage) {
-    const chatroom = await this.chatroomRepository.findOne(chatroomId);
+  async updateChatroomOnNewMessage(message: ChatMessage) {
+    const chatroom = await this.chatroomRepository.findOne(message.chatroom.id);
     chatroom.lastMessageId = message.id;
     chatroom.lastMessageUpdatedAt = message.updatedAt;
     return this.chatroomRepository.save(chatroom);
@@ -239,11 +246,11 @@ export class ChatroomService {
   }
 
   private async checkIfUserPermitted(
-    { username, role }: IUserJwt,
+    { id, role }: IUserJwt,
     participants: User[],
   ) {
     if (role === UserRole.USER) {
-      const user = await this.userService.findByUsername(username);
+      const user = await this.userService.findOneById(id);
       if (!participants.find((x) => x.id === user.id)) {
         throw new UnauthorizedException(
           'The user is not allowed to access this chatroom',

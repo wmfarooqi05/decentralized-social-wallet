@@ -23,7 +23,7 @@ export type SeenStatuses = {
   status: SeenStatus;
 };
 
-export enum MESSAGE_TYPE {
+export enum MESSAGE_TYPE_ENUM {
   TEXT,
   IMAGE,
   VIDEO,

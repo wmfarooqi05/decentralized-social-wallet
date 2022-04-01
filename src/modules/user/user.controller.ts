@@ -51,7 +51,7 @@ export class UserController {
   }
 
   @Get()
-  @Roles(UserRole.ADMIN)
+  // @Roles(UserRole.ADMIN)
   findAllUser() {
     return this.userService.findAll();
   }

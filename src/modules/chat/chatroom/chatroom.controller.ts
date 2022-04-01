@@ -28,12 +28,14 @@ export class ChatroomController {
   constructor(private chatroomService: ChatroomService) {}
 
   @Get('/all')
+  @UseGuards(JwtAuthGuard)
   @Roles(UserRole.ADMIN)
   findAllChatrooms(@Query() { page, pageSize }) {
     return this.chatroomService.findAllChatrooms(page, pageSize);
   }
 
   @Get('/:chatroomId')
+  @UseGuards(JwtAuthGuard)
   @Roles(UserRole.ADMIN, UserRole.USER)
   findChatroomById(@Req() { user }: RequestWithUser, @Param() { chatroomId }) {
     return this.chatroomService.findChatroomById(chatroomId, user);
@@ -94,39 +96,19 @@ export class ChatroomController {
     res.status(HttpStatus.CREATED).json(updatedChatroom);
   }
 
-  @Post('/:chatroomId/message')
-  @UseGuards(JwtAuthGuard)
-  addNewMessage(
-    @Req() { user }: RequestWithUser,
-    @Param() { chatroomId },
-    @Body()
-    { messageContent, messageRandomId, messageType }: CreateNewMessageDto,
-  ) {
-    return this.chatroomService.addNewMessage(
-      user.username,
-      chatroomId,
-      messageContent,
-      messageType,
-      messageRandomId,
-    );
-  }
+  // @Post('/:chatroomId/message')
+  // @UseGuards(JwtAuthGuard)
+  // addNewMessage(
+  // ) {
+  //   return this.chatroomService.addNewMessageViaQueue();
+  // }
 
-  @Put('/:chatroomId/messages/:messageId')
-  @UseGuards(JwtAuthGuard)
-  async updateMessage(
-    @Req() { user }: RequestWithUser,
-    @Param() { chatroomId, messageId },
-    @Body() { messageContent, reactions, seenStatuses }: UpdateMessageDto,
-  ) {
-    return this.chatroomService.updateMessage(
-      chatroomId,
-      user.username,
-      messageId,
-      messageContent,
-      reactions,
-      seenStatuses,
-    );
-  }
+  // @Put('/:chatroomId/messages')
+  // @UseGuards(JwtAuthGuard)
+  // async updateMessage(
+  // ) {
+  //   return this.chatroomService.updateMessageViaQueue();
+  // }
 
   @Delete('/:chatroomId/messages/:messageId')
   @UseGuards(JwtAuthGuard)

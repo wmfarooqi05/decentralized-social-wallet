@@ -10,7 +10,7 @@ import {
   Timestamp,
   UpdateDateColumn,
 } from 'typeorm';
-import { MESSAGE_TYPE, Reaction, SeenStatuses } from '../chat.types';
+import { MESSAGE_TYPE_ENUM, Reaction, SeenStatuses } from '../chat.types';
 import { Chatroom } from '../chatroom/chatroom.entity';
 
 @Entity()
@@ -19,20 +19,20 @@ export class ChatMessage {
   id: string;
 
   @ManyToOne(() => Chatroom, (chatroom) => chatroom.id)
-  chatroom: Chatroom;
+  chatroom: Pick<Chatroom, 'id'>;
 
   @ManyToOne(() => User, (user) => user.id)
-  user: User;
+  user: Pick<User, 'id'>;
 
   @Column({ nullable: true })
   messageContent: string;
 
   @Column({
     type: 'enum',
-    enum: MESSAGE_TYPE,
-    default: MESSAGE_TYPE.TEXT,
+    enum: MESSAGE_TYPE_ENUM,
+    default: MESSAGE_TYPE_ENUM.TEXT,
   })
-  messageType: MESSAGE_TYPE;
+  messageType: MESSAGE_TYPE_ENUM;
 
   @Column({ nullable: true })
   messageRandomId: string;
@@ -40,11 +40,20 @@ export class ChatMessage {
   @Column({ type: 'jsonb' })
   seenStatuses: SeenStatuses[];
 
+  @Column({ default: 0 })
+  seenTicksCount: number;
+
   /**
    * @NOTE This will not be stored as jsonb
    */
   @Column({ type: 'json', default: [] })
   reactions: Reaction[];
+
+  @Column({
+    type: 'timestamp',
+    default: () => 'CURRENT_TIMESTAMP(6)',
+  })
+  sendingTime: Date;
 
   @CreateDateColumn({
     type: 'timestamp',

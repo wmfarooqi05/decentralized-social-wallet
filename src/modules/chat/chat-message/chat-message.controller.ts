@@ -1,6 +1,8 @@
-import { Body, Controller, Delete, Param, Put, Req, UseGuards } from '@nestjs/common';
-import { JwtAuthGuard } from 'src/common/modules/jwt/jwt-auth.guard';
-import RequestWithUser from 'src/modules/auth/interfaces/request-with-user';
+import {
+  Body,
+  Controller,
+  Post,
+} from '@nestjs/common';
 import { ChatMessageService } from './chat-message.service';
 
 // @TODO: All of the messages attributes are private
@@ -9,4 +11,15 @@ import { ChatMessageService } from './chat-message.service';
 export class ChatMessageController {
   constructor(private chatMessageService: ChatMessageService) {}
 
+  @Post('/chatmessages')
+  async addMessages(
+    @Body() { messages, seenStatus, currentRoomId, acknowledingUser },
+  ) {
+    await this.chatMessageService.updateMessageStatusesBulk(
+      messages,
+      seenStatus,
+      currentRoomId,
+      acknowledingUser,
+    );
+  }
 }

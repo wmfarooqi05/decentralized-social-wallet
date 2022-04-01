@@ -6,7 +6,6 @@ import {
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './user.entity';
-import { PasswordService } from '../auth/password.service';
 import { GoogleCloudService } from 'src/common/services/google-cloud/google-cloud.service';
 import { uuid } from 'uuidv4';
 

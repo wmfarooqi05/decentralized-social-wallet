@@ -1,12 +1,12 @@
 import { IsEnum, IsOptional, IsString, IsUUID } from "class-validator";
-import { MESSAGE_TYPE } from "../../chat.types";
+import { MESSAGE_TYPE_ENUM } from "../../chat.types";
 
 export class CreateNewMessageDto {
     @IsString()
     messageContent: string;
 
-    @IsEnum(MESSAGE_TYPE)
-    messageType: MESSAGE_TYPE;
+    @IsEnum(MESSAGE_TYPE_ENUM)
+    messageType: MESSAGE_TYPE_ENUM;
 
     @IsString()
     @IsOptional()
