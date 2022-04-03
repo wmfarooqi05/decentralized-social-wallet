@@ -12,7 +12,6 @@ export const newAccountOtpEmailFormat = (otpCode) => {
   `;
 };
 
-
 export const otpPhoneFormat = (otpCode) => {
   return `
     Hi,

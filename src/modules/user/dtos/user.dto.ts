@@ -31,5 +31,4 @@ export class UserDto {
 
   @Expose()
   updatedAt: Timestamp;
-  
 }

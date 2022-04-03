@@ -1,11 +1,17 @@
-import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, Timestamp } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  ManyToOne,
+  Timestamp,
+} from 'typeorm';
 import { User } from '../user/user.entity';
 
 export enum KeyStatus {
   ACTIVE = 'ACTIVE',
   DEACTIVATED = 'DEACTIVATED',
   BLOCKED = 'BLOCKED',
-  UNVERIFIED = 'UNVERIFIED'
+  UNVERIFIED = 'UNVERIFIED',
 }
 
 @Entity()
@@ -25,10 +31,10 @@ export class CryptoKey {
 
   @ManyToOne(() => User, (user) => user.id)
   user: User;
-  
+
   @Column({
     type: 'timestamp',
-    default: () => 'CURRENT_TIMESTAMP'
+    default: () => 'CURRENT_TIMESTAMP',
   })
   createdAt: Timestamp;
 
@@ -38,5 +44,4 @@ export class CryptoKey {
     onUpdate: 'CURRENT_TIMESTAMP',
   })
   updatedAt: Timestamp;
-
 }

@@ -15,9 +15,8 @@ import { ChatMessage } from '../chat-message/chat-message.entity';
 import { ChatMessageService } from '../chat-message/chat-message.service';
 import { Chatroom } from './chatroom.entity';
 import { GET_EXISTING_PRIVATE_CHATROOM } from './query/get-existing-private-chatroom';
-import { MESSAGE_TYPE_ENUM, Reaction, SeenStatuses } from '../chat.types';
+import { MESSAGE_TYPE_ENUM } from '../chat.types';
 import { paginationHelper } from 'src/common/helpers/pagination';
-import { ChatQueueService } from '../redis/chat-queue.service';
 
 @Injectable()
 export class ChatroomService {
@@ -210,7 +209,7 @@ export class ChatroomService {
   // async updateMessageViaQueue() {
   //   this.chatQueueService.updateMessageStatusInDB([
   //     {
-  //      id:'1', 
+  //      id:'1',
   //       chatroomId: '1',
   //       messageContent: 'asads',
   //       messageRandomId: '123123123',

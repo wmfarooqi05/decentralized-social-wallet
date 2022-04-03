@@ -1,8 +1,8 @@
-import { User } from "src/modules/user/user.entity";
+import { User } from 'src/modules/user/user.entity';
 
 export type JwtAndRefreshToken = {
-    jwtToken: string;
-    refreshToken: string;
-}
+  jwtToken: string;
+  refreshToken: string;
+};
 
 export interface UserWithTokens extends User, JwtAndRefreshToken {}

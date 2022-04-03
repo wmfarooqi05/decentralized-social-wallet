@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { SessionStatus, UserSession } from './user-session.entity';
@@ -43,12 +47,14 @@ export class UserSessionService {
         refreshToken,
       },
     });
-    const oldTime = moment(tokenExists.exipredAt.toString(),'L');
+    const oldTime = moment(tokenExists.exipredAt.toString(), 'L');
 
     if (!tokenExists) {
-      throw new UnauthorizedException('Refresh Token doesn\'t exist');
+      throw new UnauthorizedException("Refresh Token doesn't exist");
     } else if (oldTime.diff(moment()) < 0) {
-      throw new UnauthorizedException('Refresh Token expired, please Login again');
+      throw new UnauthorizedException(
+        'Refresh Token expired, please Login again',
+      );
     }
   }
   async logout(user, refreshToken) {

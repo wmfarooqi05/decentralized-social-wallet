@@ -28,7 +28,7 @@ export class OtpService {
   async getOtpCodes() {
     return await this.otpRepo.find();
   }
-  
+
   async getValidOtp(
     token: string,
     type: string,
@@ -120,7 +120,12 @@ export class OtpService {
     expiryTime: moment.Moment = null,
   ): Promise<{ token: string } | void> {
     // @TODO: choose sending payload using tokenType
-    const { token } = await this.createOTP(user, tokenType, additionalItem, expiryTime);
+    const { token } = await this.createOTP(
+      user,
+      tokenType,
+      additionalItem,
+      expiryTime,
+    );
     try {
       if (user.email && allowedTransport.includes(TransportType.EMAIL)) {
         await this.sendgridService.send(

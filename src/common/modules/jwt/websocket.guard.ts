@@ -6,10 +6,9 @@ import { IUserJwt } from './jwt-payload.interface';
 
 @Injectable()
 export class WsGuard implements CanActivate {
-  constructor(private readonly jwtService: JwtService) { }
+  constructor(private readonly jwtService: JwtService) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-
     try {
       const client: Socket = context.switchToWs().getClient<Socket>();
       const authHeader: string = client.handshake.headers.authorization;

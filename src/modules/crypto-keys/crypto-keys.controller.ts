@@ -13,7 +13,6 @@ export class CryptoKeysController {
   @Post('/add-public-key')
   @UseGuards(JwtAuthGuard)
   async addPublicKey(
-
     @CurrentUser() { id }: IUserJwt,
     @Body() { publicKey }: AddCryptoPublicKey,
   ) {

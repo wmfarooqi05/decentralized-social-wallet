@@ -19,7 +19,9 @@ describe('UserController', () => {
         } as User);
       },
       find: (phoneNumber: string) => {
-        return Promise.resolve([{ id: 1, phoneNumber, password: 'asdf' } as User]);
+        return Promise.resolve([
+          { id: 1, phoneNumber, password: 'asdf' } as User,
+        ]);
       },
       // remove: () => {},
       // update: () => {},

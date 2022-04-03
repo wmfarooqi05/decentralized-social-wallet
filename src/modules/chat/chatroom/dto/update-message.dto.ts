@@ -1,14 +1,11 @@
-import { plainToClass, Transform, Type } from 'class-transformer';
+import { Type } from 'class-transformer';
 import {
   IsArray,
-    IsDate,
-    IsEnum,
+  IsDate,
   IsJSON,
-  IsNotEmpty,
   IsOptional,
   IsString,
   IsUUID,
-  ValidateIf,
   ValidateNested,
 } from 'class-validator';
 import { Reaction, SeenStatus, SeenStatuses } from '../../chat.types';
@@ -30,15 +27,15 @@ export class UpdateMessageDto {
 }
 
 class SeenStatusesDto {
-    @IsUUID('4')
-    userId: string;
+  @IsUUID('4')
+  userId: string;
 
-    // @TODO: check
-    @Type(() => Date)
-    @IsDate()
-    updatedAt: Date;
+  // @TODO: check
+  @Type(() => Date)
+  @IsDate()
+  updatedAt: Date;
 
-    // @TODO: Add validator for spell check
-    @IsString()
-    status: SeenStatus;
+  // @TODO: Add validator for spell check
+  @IsString()
+  status: SeenStatus;
 }

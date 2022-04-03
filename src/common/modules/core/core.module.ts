@@ -24,6 +24,6 @@ import { JwtStrategy } from '../jwt/jwt.strategy';
     }),
   ],
   exports: [JwtModule],
-  providers:[JwtStrategy]
+  providers: [JwtStrategy],
 })
 export class CoreModule {}

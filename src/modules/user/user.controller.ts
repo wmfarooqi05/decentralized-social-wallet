@@ -34,12 +34,10 @@ import 'multer';
 @ApiBearerAuth()
 @Serialize(UserDto)
 export class UserController {
-  constructor(
-    private userService: UserService,
-  ) {}
+  constructor(private userService: UserService) {}
 
   @Get('/:id')
-  @ApiOperation({ summary: "Find a user by id" })
+  @ApiOperation({ summary: 'Find a user by id' })
   @ApiBearerAuth()
   @Roles(UserRole.ADMIN)
   async findUser(@Param('id') id: string): Promise<User> {
@@ -77,16 +75,27 @@ export class UserController {
 
   @Put('update-fullname')
   @UseGuards(JwtAuthGuard)
-  updateUserFullName(@Req() req: RequestWithUser, @Body() { fullName }: UpdateUserFullNameDto) {
+  updateUserFullName(
+    @Req() req: RequestWithUser,
+    @Body() { fullName }: UpdateUserFullNameDto,
+  ) {
     return this.userService.updateWithUsername(req.user.username, {
-      fullName
+      fullName,
     });
   }
 
   @Put('update-profile-picture')
   // @UseGuards(JwtAuthGuard)
   @UseInterceptors(FileInterceptor('file'))
-  async updateProfilePicture(@Req() request: RequestWithUser, @UploadedFile() file: Express.Multer.File) {
-    return this.userService.updateProfilePicture(request.currentUser.username, file.buffer, file.mimetype, file.originalname)
+  async updateProfilePicture(
+    @Req() request: RequestWithUser,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    return this.userService.updateProfilePicture(
+      request.currentUser.username,
+      file.buffer,
+      file.mimetype,
+      file.originalname,
+    );
   }
 }

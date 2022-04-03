@@ -1,14 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { InjectTwilio, TwilioClient } from 'nestjs-twilio';
-import { ConfigService } from '@nestjs/config';
-
 
 @Injectable()
 export class TwilioService {
   constructor(@InjectTwilio() private readonly twilioClient: TwilioClient) {}
 
   async sendSMS(targetPhoneNumber: string) {
-
     // @TODO: add phone regex
     try {
       return await this.twilioClient.messages.create({
@@ -21,8 +18,7 @@ export class TwilioService {
     }
   }
 
-  async sendSMSToken(targetPhoneNumber: string, body: string,) {
-
+  async sendSMSToken(targetPhoneNumber: string, body: string) {
     // @TODO: add phone regex
     try {
       return await this.twilioClient.messages.create({

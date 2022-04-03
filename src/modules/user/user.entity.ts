@@ -20,9 +20,7 @@ export enum UserStatus {
   UNVERIFIED = 'UNVERIFIED',
 }
 
-@Entity({
-  
-})
+@Entity({})
 export class User {
   @PrimaryGeneratedColumn('uuid')
   id: string;

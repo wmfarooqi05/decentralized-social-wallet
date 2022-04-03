@@ -18,10 +18,8 @@ import { JwtAuthGuard } from 'src/common/modules/jwt/jwt-auth.guard';
 import { Roles } from 'src/common/modules/roles/roles.decorator';
 import RequestWithUser from 'src/modules/auth/interfaces/request-with-user';
 import { UserRole } from 'src/modules/user/user.entity';
-import { UpdateMessageDto } from './dto/update-message.dto';
 import { ChatroomService } from './chatroom.service';
 import { CreateChatroomDto } from './dto/create-chatroom.dto';
-import { CreateNewMessageDto } from './dto/create-new-message.dto';
 
 @Controller('chatrooms')
 export class ChatroomController {

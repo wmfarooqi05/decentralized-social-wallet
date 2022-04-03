@@ -12,7 +12,9 @@ describe('AuthService', () => {
     const user: User[] = [];
     fakeUserService = {
       find: (phoneNumber: string) => {
-        const filteredUser = user.filter((user) => user.phoneNumber === phoneNumber);
+        const filteredUser = user.filter(
+          (user) => user.phoneNumber === phoneNumber,
+        );
         return Promise.resolve(filteredUser);
       },
       create: (phoneNumber: string, password: string) => {

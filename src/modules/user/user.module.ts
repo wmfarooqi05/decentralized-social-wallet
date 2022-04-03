@@ -10,13 +10,16 @@ import { TwilioService } from 'src/common/services/twilio.service';
 import { GoogleCloudService } from 'src/common/services/google-cloud/google-cloud.service';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([User]),
-    OtpModule,
-  ],
+  imports: [TypeOrmModule.forFeature([User]), OtpModule],
   controllers: [UserController],
-  providers: [UserService, PasswordService, SendgridService, TwilioService, GoogleCloudService],
-  exports: [UserService]
+  providers: [
+    UserService,
+    PasswordService,
+    SendgridService,
+    TwilioService,
+    GoogleCloudService,
+  ],
+  exports: [UserService],
 })
 export class UserModule {
   // move this to app module

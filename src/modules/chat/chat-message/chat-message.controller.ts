@@ -1,8 +1,4 @@
-import {
-  Body,
-  Controller,
-  Post,
-} from '@nestjs/common';
+import { Body, Controller, Post } from '@nestjs/common';
 import { ChatMessageService } from './chat-message.service';
 
 // @TODO: All of the messages attributes are private

@@ -19,8 +19,10 @@ export class PasswordService {
     return result;
   }
 
-  async validatePassword(password: string, hashedPassword: string): Promise<boolean> {
-
+  async validatePassword(
+    password: string,
+    hashedPassword: string,
+  ): Promise<boolean> {
     const [salt, storedHash] = hashedPassword.split('.');
 
     const hash = (await scrypt(password, salt, 32)) as Buffer;

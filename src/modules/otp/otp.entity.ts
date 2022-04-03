@@ -46,11 +46,18 @@ export class Otp {
 
   @Column({ type: 'enum', enum: TokenType })
   type: TokenType;
-  
-  @CreateDateColumn({ type: "timestamptz", default: () => "CURRENT_TIMESTAMP(6)" })
+
+  @CreateDateColumn({
+    type: 'timestamptz',
+    default: () => 'CURRENT_TIMESTAMP(6)',
+  })
   createdAt: Date;
 
-  @UpdateDateColumn({ type: "timestamptz", default: () => "CURRENT_TIMESTAMP(6)", onUpdate: "CURRENT_TIMESTAMP(6)" })
+  @UpdateDateColumn({
+    type: 'timestamptz',
+    default: () => 'CURRENT_TIMESTAMP(6)',
+    onUpdate: 'CURRENT_TIMESTAMP(6)',
+  })
   updatedAt: Date;
 
   @ManyToOne(() => User, (user) => user.id)

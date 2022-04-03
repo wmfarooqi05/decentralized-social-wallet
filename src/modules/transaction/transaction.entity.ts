@@ -1,16 +1,22 @@
-import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, Timestamp } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  ManyToOne,
+  Timestamp,
+} from 'typeorm';
 import { User } from '../user/user.entity';
 
 export enum TransactionChannel {
-  ETHEREUM = 'ETHEREUM'
+  ETHEREUM = 'ETHEREUM',
 }
 
 export enum TransactionStatus {
-    SUCCESSFUL = "SUCCESSFUL",
-    FAILED = "FAILED",
-    CANCELLED = "CANCELLED",
-    PENDING = "PENDING",
-    IN_PROGRESS = "IN_PROGRESS"
+  SUCCESSFUL = 'SUCCESSFUL',
+  FAILED = 'FAILED',
+  CANCELLED = 'CANCELLED',
+  PENDING = 'PENDING',
+  IN_PROGRESS = 'IN_PROGRESS',
 }
 
 @Entity()
@@ -28,7 +34,7 @@ export class Transaction {
   })
   transactionChannel: string;
 
-  @Column({ type: "timestamp", default: () => "CURRENT_TIMESTAMP"})
+  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   createdAt: Timestamp;
 
   @ManyToOne(() => User, (user) => user.id)
@@ -45,9 +51,9 @@ export class Transaction {
   updatedAt: Timestamp;
 
   @Column({
-      type: 'enum',
-      enum: TransactionStatus,
-      default: TransactionStatus.PENDING
+    type: 'enum',
+    enum: TransactionStatus,
+    default: TransactionStatus.PENDING,
   })
   status: string;
 

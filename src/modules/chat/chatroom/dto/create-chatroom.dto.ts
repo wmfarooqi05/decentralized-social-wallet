@@ -1,15 +1,4 @@
-import {
-  IsEmail,
-  IsString,
-  IsOptional,
-  IsPhoneNumber,
-  IsUUID,
-  ValidateNested,
-  ArrayMinSize,
-  ArrayMaxSize,
-} from 'class-validator';
-
-const MAX_CHATROOM_SIZE = 2;
+import { IsString, IsOptional, IsUUID } from 'class-validator';
 
 export class CreateChatroomDto {
   @IsString()
@@ -20,8 +9,8 @@ export class CreateChatroomDto {
   @IsOptional()
   icon: string;
 
-//   @ArrayMinSize(2)
-//   @ArrayMaxSize(MAX_CHATROOM_SIZE)
+  //   @ArrayMinSize(2)
+  //   @ArrayMaxSize(MAX_CHATROOM_SIZE)
   @IsUUID('4', { each: true })
   participants: [string];
 }

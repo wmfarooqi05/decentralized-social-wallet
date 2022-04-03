@@ -1,5 +1,5 @@
-import { IUserJwt } from "src/common/modules/jwt/jwt-payload.interface";
-import { Reaction, SeenStatus, SeenStatuses } from "../chat.types";
+import { IUserJwt } from 'src/common/modules/jwt/jwt-payload.interface';
+import { Reaction, SeenStatus, SeenStatuses } from '../chat.types';
 
 export type SOCKET_CUSTOM_INCOMING_EVENT_TYPE =
   | 'NEW_MESSAGE'

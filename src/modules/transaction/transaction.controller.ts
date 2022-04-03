@@ -1,12 +1,8 @@
-import { Body, Controller, Get, Param, Post, Put } from '@nestjs/common';
-import { Roles } from 'src/common/modules/roles/roles.decorator';
-import { CreateTransactionDTO } from './dto/create-transaction.dto';
-import { UpdateTransactionDTO } from './dto/update-transaction.dto';
-import { TransactionService } from './transaction.service';
+import { Controller } from '@nestjs/common';
 
 @Controller('transaction')
 export class TransactionController {
-  constructor(private transactionService: TransactionService) {}
+  constructor() {}
 
   // @Get()
   // @Roles(Role.ADMIN_ROLE)

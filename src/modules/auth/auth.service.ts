@@ -10,8 +10,6 @@ import { User, UserStatus } from '../user/user.entity';
 import { JwtService } from '@nestjs/jwt';
 import { Request, Response } from 'express';
 import { UserDto } from '../user/dtos/user.dto';
-import { Repository } from 'typeorm';
-import { InjectRepository } from '@nestjs/typeorm';
 import { OtpService } from '../otp/otp.service';
 import { ValidateOTPDTO } from './dtos/validate-otp.dto';
 import { TokenType, TransportType } from '../otp/otp.entity';
@@ -20,7 +18,6 @@ import errors from 'src/constants/errors';
 import { IUserJwt } from 'src/common/modules/jwt/jwt-payload.interface';
 import { JwtAndRefreshToken, UserWithTokens } from './interfaces';
 import { CryptoKeysService } from '../crypto-keys/crypto-keys.service';
-import * as moment from 'moment';
 
 @Injectable()
 export class AuthService {
@@ -55,11 +52,9 @@ export class AuthService {
 
   async getLoginOtp(username: string) {
     const user = await this.userService.findByUsername(username);
-    return this.otpService.generateAndSendOTP(
-      user,
-      TokenType.LOGIN_API_TOKEN,
-      [TransportType.API],
-    );
+    return this.otpService.generateAndSendOTP(user, TokenType.LOGIN_API_TOKEN, [
+      TransportType.API,
+    ]);
   }
 
   async signin(

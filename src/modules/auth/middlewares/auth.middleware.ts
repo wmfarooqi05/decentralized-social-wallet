@@ -1,4 +1,8 @@
-import { NestMiddleware, Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  NestMiddleware,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
 import { JwtService } from '@nestjs/jwt';
 import { IUserJwt } from 'src/common/modules/jwt/jwt-payload.interface';

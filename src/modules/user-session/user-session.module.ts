@@ -4,9 +4,7 @@ import { UserSession } from './user-session.entity';
 import { UserSessionService } from './user-session.service';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([UserSession]),
-    ],
+  imports: [TypeOrmModule.forFeature([UserSession])],
   providers: [UserSessionService],
   exports: [UserSessionService],
 })

@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsPhoneNumber, IsOptional, IsEmail, IsString, ValidateIf } from 'class-validator';
+import { IsString } from 'class-validator';
 
 export class AddCryptoPublicKey {
   // @TODO validate public key

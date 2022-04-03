@@ -1,10 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import {
-  IsEnum,
-  IsJSON,
-  IsNumber,
-  IsString,
-} from 'class-validator';
+import { IsEnum, IsJSON, IsNumber, IsString } from 'class-validator';
 import { TransactionChannel, TransactionStatus } from '../transaction.entity';
 
 export class CreateTransactionDTO {

@@ -24,19 +24,19 @@ export class UserSession {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @ManyToOne(() => User, (user) => user.id, {  onDelete: 'CASCADE' })
+  @ManyToOne(() => User, (user) => user.id, { onDelete: 'CASCADE' })
   user: User;
 
   @Column()
   refreshToken: string;
 
-  @Column({ type: 'timestamp', default: () => "CURRENT_TIMESTAMP" })
+  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   lastLogin: Timestamp;
 
   @Column({
     type: 'enum',
     enum: SessionStatus,
-    default: SessionStatus.ACTIVE
+    default: SessionStatus.ACTIVE,
   })
   status: SessionStatus;
 
@@ -46,7 +46,7 @@ export class UserSession {
   @Column()
   lastLoginIpAddress: string;
 
-  @Column({ type: "timestamp", default: moment().add(7, 'days') })
+  @Column({ type: 'timestamp', default: moment().add(7, 'days') })
   exipredAt: Timestamp;
   // @AfterInsert()
   // logInsert() {

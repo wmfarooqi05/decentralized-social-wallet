@@ -8,7 +8,10 @@ import { validateUserJwt } from 'src/common/modules/jwt/jwt.validate';
 export class SocketService {
   constructor(private readonly jwtService: JwtService) {}
 
-  async verifyIfUserExistsInChatroom(chatroomId: string, userId: string): Promise<void> {
+  async verifyIfUserExistsInChatroom(
+    chatroomId: string,
+    userId: string,
+  ): Promise<void> {
     // @TODO: store chatroom map in redis and confirm from there
     // const chatroom = await this.chatroomService.findChatroomById(chatroomId, user);
     // return chatroom.participants.find(x => x.username === user.username);
