@@ -11,12 +11,14 @@ import { UserSessionModule } from '../user-session/user-session.module';
 import { UserSession } from '../user-session/user-session.entity';
 import { GoogleCloudService } from 'src/common/services/google-cloud/google-cloud.service';
 import { UserModule } from '../user/user.module';
+import { CryptoKeysModule } from '../crypto-keys/crypto-keys.module';
 
 @Module({
   imports: [
     OtpModule,
     UserSessionModule,
     UserModule,
+    CryptoKeysModule,
   ],
   controllers: [AuthController],
   providers: [

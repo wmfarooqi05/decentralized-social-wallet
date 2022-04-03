@@ -2,8 +2,10 @@ import {
   BadRequestException,
   Injectable,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import * as moment from 'moment';
 import { SendgridService } from 'src/common/services/email.service';
 import { TwilioService } from 'src/common/services/twilio.service';
 import {
@@ -26,8 +28,8 @@ export class OtpService {
   async getOtpCodes() {
     return await this.otpRepo.find();
   }
-
-  async findOtpCodeByIdAndType(
+  
+  async getValidOtp(
     token: string,
     type: string,
     userId: string,
@@ -37,23 +39,27 @@ export class OtpService {
       expired: false,
       type,
       user: userId,
-      // token,
+      token,
     };
 
     if (additionalItem) {
       whereClause.additionalItem = additionalItem;
     }
 
-    return this.otpRepo.findOne({
+    const otp = await this.otpRepo.findOne({
       where: whereClause,
       order: { id: 'DESC' },
     });
+
+    this.checkOtpValidation(otp);
+    return otp;
   }
 
   async createOTP(
     user: User,
     tokenType: TokenType,
     additionalItem: string = null,
+    expiryTime: moment.Moment = null,
   ): Promise<Otp> {
     if (!user)
       throw new NotFoundException('No user registered with given credentials.');
@@ -62,6 +68,7 @@ export class OtpService {
       token: this.generateOTP(),
       type: tokenType,
       additionalItem,
+      expiryTime,
     });
     return this.otpRepo.save(otp);
   }
@@ -110,15 +117,16 @@ export class OtpService {
       TransportType.SMS,
     ],
     additionalItem: string = null,
-  ) {
+    expiryTime: moment.Moment = null,
+  ): Promise<{ token: string } | void> {
     // @TODO: choose sending payload using tokenType
-    const otp = await this.createOTP(user, tokenType, additionalItem);
+    const { token } = await this.createOTP(user, tokenType, additionalItem, expiryTime);
     try {
       if (user.email && allowedTransport.includes(TransportType.EMAIL)) {
         await this.sendgridService.send(
           user.email,
           NEW_ACCOUNT_EMAIL,
-          newAccountOtpEmailFormat(otp.token),
+          newAccountOtpEmailFormat(token),
         );
       } else if (
         user.phoneNumber &&
@@ -126,14 +134,29 @@ export class OtpService {
       ) {
         await this.twilioService.sendSMSToken(
           user.phoneNumber,
-          NEW_ACCOUNT_SMS(otp.token),
+          NEW_ACCOUNT_SMS(token),
         );
+      }
+
+      if (tokenType === TokenType.LOGIN_API_TOKEN) {
+        return {
+          token: token,
+        };
       }
     } catch (e) {
       if (e?.response?.body?.errors[0]) {
         throw new Error(e.response.body.errors[0].message);
       }
       console.log(e);
+    }
+  }
+
+  checkOtpValidation(otp: Otp) {
+    if (!otp) {
+      throw new UnauthorizedException('Otp is invalid.');
+    }
+    if (otp.expired || moment().diff(otp.expiryTime) > 0) {
+      throw new UnauthorizedException('Otp has been expired');
     }
   }
 }

@@ -70,12 +70,13 @@ export class AuthController {
   async signin(
     @Req() request: Request,
     @Res({ passthrough: true }) response: Response,
-    @Body() body: SigninDTO,
+    @Body() { otp, username, publicKey }: SigninDTO,
   ): Promise<UserDto> {
     return await this.authService.signin(
       request,
-      body.email,
-      body.phoneNumber,
+      username,
+      otp,
+      publicKey,
       response,
     );
   }
@@ -176,5 +177,14 @@ export class AuthController {
   ) {
     const payload = await this.authService.getAccessTokens(req, res, username);
     res.status(HttpStatus.CREATED).json(payload);
+  }
+
+  @Post('/get-login-otp')
+  async getLoginOtp(
+    @Body() { username }: UsernameDTO,
+    @Res() res: Response,
+  ): Promise<any> {
+    const otp = await this.authService.getLoginOtp(username);
+    res.status(HttpStatus.CREATED).json(otp);
   }
 }

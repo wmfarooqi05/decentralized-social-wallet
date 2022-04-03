@@ -17,11 +17,13 @@ export enum TokenType {
   ACCOUNT_REGISTER = 'ACCOUNT_REGISTER', // unused
   LINK_EMAIL = 'LINK_EMAIL',
   LINK_PHONE_NUMBER = 'LINK_PHONE_NUMBER',
+  LOGIN_API_TOKEN = 'LOGIN_API_TOKEN',
 }
 
 export enum TransportType {
   EMAIL = 'EMAIL',
   SMS = 'SMS',
+  API = 'API',
 }
 
 @Entity()
@@ -39,16 +41,16 @@ export class Otp {
   })
   expired: boolean;
 
-  @Column({ type: 'timestamp', default: moment().add(1, 'minutes') })
-  expiryTime: Timestamp;
+  @Column({ type: 'timestamptz', default: moment().add(10, 'minutes') })
+  expiryTime: Date;
 
   @Column({ type: 'enum', enum: TokenType })
   type: TokenType;
   
-  @CreateDateColumn({ type: "timestamp", default: () => "CURRENT_TIMESTAMP(6)" })
+  @CreateDateColumn({ type: "timestamptz", default: () => "CURRENT_TIMESTAMP(6)" })
   createdAt: Date;
 
-  @UpdateDateColumn({ type: "timestamp", default: () => "CURRENT_TIMESTAMP(6)", onUpdate: "CURRENT_TIMESTAMP(6)" })
+  @UpdateDateColumn({ type: "timestamptz", default: () => "CURRENT_TIMESTAMP(6)", onUpdate: "CURRENT_TIMESTAMP(6)" })
   updatedAt: Date;
 
   @ManyToOne(() => User, (user) => user.id)

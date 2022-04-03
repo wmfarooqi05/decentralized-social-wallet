@@ -19,6 +19,8 @@ import { UserSessionService } from '../user-session/user-session.service';
 import errors from 'src/constants/errors';
 import { IUserJwt } from 'src/common/modules/jwt/jwt-payload.interface';
 import { JwtAndRefreshToken, UserWithTokens } from './interfaces';
+import { CryptoKeysService } from '../crypto-keys/crypto-keys.service';
+import * as moment from 'moment';
 
 @Injectable()
 export class AuthService {
@@ -27,6 +29,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly otpService: OtpService,
     private readonly userSessionService: UserSessionService,
+    private readonly cryptoKeysService: CryptoKeysService,
   ) {}
 
   async signup(
@@ -50,32 +53,44 @@ export class AuthService {
     return Object.assign({}, user, tokens);
   }
 
+  async getLoginOtp(username: string) {
+    const user = await this.userService.findByUsername(username);
+    return this.otpService.generateAndSendOTP(
+      user,
+      TokenType.LOGIN_API_TOKEN,
+      [TransportType.API],
+    );
+  }
+
   async signin(
     request: Request,
-    email: string,
-    phoneNumber: string,
+    username: string,
+    otp: string,
+    publicKey: string,
     response: Response,
   ): Promise<UserDto> {
-    const user: User = await this.userService.findUser({ email, phoneNumber });
+    const user: User = await this.userService.findByUsername(username);
 
-    if (!user) {
-      throw new NotFoundException('user not found');
+    const otpItem = await this.otpService.getValidOtp(
+      otp,
+      TokenType.LOGIN_API_TOKEN,
+      user.id,
+    );
+
+    if (!otp || otpItem?.token !== otp) {
+      throw new Error('Expired or invalid OTP');
     }
 
-    const jwtToken = this.jwtService.sign({
-      email: user.email,
-      phoneNumber: user.phoneNumber,
-      name: user.fullName,
-      role: user.role,
-    });
-    const refreshToken = this.userSessionService.generateRefreshToken(
-      user,
-      request.ip,
+    const userPublicKey = await this.cryptoKeysService.getPublicKeyByUserId(
+      user.id,
     );
-    response.cookie('access-token', jwtToken, { httpOnly: true });
-    response.cookie('refresh-token', refreshToken, { httpOnly: true });
+    if (userPublicKey !== publicKey) {
+      throw new Error("Public keys doesn't match");
+    }
 
-    return user;
+    const tokens: JwtAndRefreshToken =
+      await this.generateAndAttachJwtAndRefreshToken(request, response, user);
+    return Object.assign({}, user, tokens);
   }
 
   // @TODO: Implement this
@@ -192,7 +207,7 @@ export class AuthService {
 
   async completeEmailUsingOtp(username: string, email: string, otp: string) {
     const user = await this.userService.findByUsername(username);
-    const otpItem = await this.otpService.findOtpCodeByIdAndType(
+    const otpItem = await this.otpService.getValidOtp(
       otp,
       TokenType.LINK_EMAIL,
       user.id,
@@ -216,7 +231,7 @@ export class AuthService {
     otp: string,
   ) {
     const user = await this.userService.findByUsername(username);
-    const otpItem = await this.otpService.findOtpCodeByIdAndType(
+    const otpItem = await this.otpService.getValidOtp(
       otp,
       TokenType.LINK_PHONE_NUMBER,
       user.id,

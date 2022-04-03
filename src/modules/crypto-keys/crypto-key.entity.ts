@@ -21,7 +21,7 @@ export class CryptoKey {
     enum: KeyStatus,
     default: KeyStatus.UNVERIFIED,
   })
-  status: boolean;
+  status: KeyStatus;
 
   @ManyToOne(() => User, (user) => user.id)
   user: User;

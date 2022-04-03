@@ -1,23 +1,27 @@
 import { ApiProperty } from '@nestjs/swagger';
 import {
-  IsPhoneNumber,
-  IsEmail,
   IsString,
-  ValidateIf,
+  Matches,
+  IsNumberString,
+  Length,
+  
 } from 'class-validator';
+import { USERNAME_REGEX } from 'src/constants/auth';
 
 export class SigninDTO {
-  @IsPhoneNumber()
-  @ValidateIf((o) => !o.email || o.phoneNumber)
-  @ApiProperty({ type: String, description: 'phoneNumber' })
-  phoneNumber: string;
+  @IsString()
+  @Matches(USERNAME_REGEX, {
+    message: 'Username not valid'
+  })
+  @ApiProperty({ type: String, description: 'username' })
+  username: string;
 
-  @IsEmail()
-  @ValidateIf((o) => o.email || !o.phoneNumber)
-  @ApiProperty({ type: String, description: 'email' })
-  email: string;
+  @IsNumberString()
+  @Length(parseInt(process.env.OTP_LENGTH))
+  @ApiProperty({ type: String, description: 'otp' })
+  otp: string;
 
   @IsString()
-  @ApiProperty({ type: String, description: 'password' })
-  password: string;
+  @ApiProperty({ type: String, description: 'public-key' })
+  publicKey: string;
 }
