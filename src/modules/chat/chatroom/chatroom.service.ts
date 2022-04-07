@@ -4,6 +4,7 @@ import {
   forwardRef,
   Inject,
   Injectable,
+  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -117,6 +118,9 @@ export class ChatroomService {
     icon?: string,
   ) {
     const user = await this.userService.findByUsername(username);
+    if (!user) {
+      throw new NotFoundException('User doesn\'t exist');
+    }
     if (!participants.includes(user.id) && user.role !== UserRole.ADMIN) {
       // Only admin can create someone else's chatroom
       throw new BadRequestException(

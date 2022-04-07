@@ -32,12 +32,12 @@ import {
 import { ChatQueueService } from '../redis/chat-queue.service';
 
 @WebSocketGateway({
-  namespace: '/chat',
+  namespace: '/socket.io',
   cors: {
     origin: '*',
   },
   // @TODO: uncomment this
-  // transports: ['websocket'],
+  // transports: ['websocket'],`
 })
 export class ChatGateway
   implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
@@ -52,18 +52,21 @@ export class ChatGateway
   private logger: Logger = new Logger('ChatGateway');
 
   afterInit(server: Server) {
+    console.log(`init`);
     this.logger.log('Init');
   }
 
   handleDisconnect(client: Socket) {
     // const { userId } = client.handshake.query;
     // this.onlineUsersMap.delete(userId?.toString());
+    console.log(`Client disconnected, ${client?.id}`);
     this.logger.log(`Client disconnected, ${client?.id}`);
     // this.removeUserFromMap() @MOST_IMPORTANT @TODO: fix this
   }
 
   handleConnection(client: Socket, ...args: any) {
     try {
+      console.log(`Client connect, ${client?.id}`);
       const user = this.socketService.getUserFromSocket(client);
       this.storeUserToMap(client, user);
       console.log(`Client connected: ${client?.id}, User: ${user.username}`);
