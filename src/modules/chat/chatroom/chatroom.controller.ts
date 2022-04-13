@@ -59,7 +59,7 @@ export class ChatroomController {
     @Query() { page, pageSize },
   ) {
     return this.chatroomService.findAllChatroomsByUser(
-      user.username,
+      user.id,
       page,
       pageSize,
     );

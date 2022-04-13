@@ -2,7 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import * as dotenv from 'dotenv';
-// import { CustomLogger } from './common/services/custom-logger/custom-logger.service';
+import { CustomLogger } from './common/services/custom-logger/custom-logger.service';
 import * as path from 'path';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
@@ -11,7 +11,7 @@ dotenv.config();
 declare const module: any;
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
-    // logger: new CustomLogger(),
+    logger: new CustomLogger(),
   });
   (app as any).set('etag', false);
 
