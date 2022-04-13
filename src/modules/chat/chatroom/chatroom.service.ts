@@ -17,7 +17,11 @@ import { ChatMessageService } from '../chat-message/chat-message.service';
 import { Chatroom } from './chatroom.entity';
 import { GET_EXISTING_PRIVATE_CHATROOM } from './query/get-existing-private-chatroom';
 import { MESSAGE_TYPE_ENUM } from '../chat.types';
-import { paginationHelper } from 'src/common/helpers/pagination';
+import {
+  paginationHelper,
+  paginationHelperOffsetLimit,
+} from 'src/common/helpers/pagination';
+import { GET_CHATROOMS_BY_USER_ID } from './query/get-chatrooms-by-user-id';
 
 @Injectable()
 export class ChatroomService {
@@ -39,33 +43,13 @@ export class ChatroomService {
     return this.addLastMessagesToChatrooms(chatrooms);
   }
 
-  async findAllChatroomsByUser(
-    username: string,
-    page?: string,
-    pageSize?: string,
-  ) {
-    const user = await this.userService.findByUsername(username);
-    const { take, skip } = paginationHelper(page, pageSize);
-    const qb = this.chatroomRepository
-      .createQueryBuilder('chatroom')
-      .leftJoinAndSelect(
-        'chatroom.participants',
-        'user',
-        'user.id IN (:...userIds)',
-        { userIds: [user.id] },
-      )
-      .addOrderBy('chatroom.lastMessageUpdatedAt', 'DESC', 'NULLS LAST');
-    if (take) {
-      qb.take(take);
-    }
-
-    if (skip) {
-      qb.skip(skip);
-    }
-
-    const chatrooms = await qb.getMany();
-    // @TODO Later on, improve the relation logic
-    return this.addLastMessagesToChatrooms(chatrooms);
+  async findAllChatroomsByUser(id: string, page?: string, pageSize?: string) {
+    const { limit, offset } = paginationHelperOffsetLimit(page, pageSize);
+    return this.chatroomRepository.query(GET_CHATROOMS_BY_USER_ID, [
+      [id],
+      limit,
+      offset,
+    ]);
   }
 
   async _findChatroomById(id: string) {
@@ -119,7 +103,7 @@ export class ChatroomService {
   ) {
     const user = await this.userService.findByUsername(username);
     if (!user) {
-      throw new NotFoundException('User doesn\'t exist');
+      throw new NotFoundException("User doesn't exist");
     }
     if (!participants.includes(user.id) && user.role !== UserRole.ADMIN) {
       // Only admin can create someone else's chatroom

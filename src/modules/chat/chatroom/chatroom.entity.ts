@@ -59,6 +59,7 @@ export class Chatroom {
   @Column({
     name: 'lastMessageUpdatedAt',
     type: 'timestamp',
+    nullable: true,
   })
   lastMessageUpdatedAt: Date;
 

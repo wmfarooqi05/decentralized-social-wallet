@@ -89,7 +89,9 @@ export class ChatMessageService {
         "The message doesn't belongs to this chatroom",
       );
     }
-    return this.chatMessageRepository.delete(message.id);
+    return this.chatMessageRepository.update(messageId, {
+      isDeleted: true,
+    });
   }
   /** HELPER METHODS */
 
