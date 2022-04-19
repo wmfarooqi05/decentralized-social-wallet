@@ -123,6 +123,8 @@ export class ChatGateway
       newMessage,
     );
 
+      // Event, broadcase to user
+
     this.saveToDB(newMessage.messages, payload.currentRoomId, payload.user);
     this.emitEventOnlyToClient(
       client.id,

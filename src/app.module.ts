@@ -21,6 +21,10 @@ import { UserSessionModule } from './modules/user-session/user-session.module';
 import { TransactionModule } from './modules/transaction/transaction.module';
 import { GoogleCloudService } from './common/services/google-cloud/google-cloud.service';
 import { ChatModule } from './modules/chat/chat.module';
+import { WinstonModule } from 'nest-winston';
+import { FriendRequestController } from './modules/friend-request/friend-request.controller';
+import { FriendRequestModule } from './modules/friend-request/friend-request.module';
+import * as winston from 'winston';
 require('dotenv').config();
 
 const cookieSession = require('cookie-session');
@@ -43,9 +47,12 @@ const cookieSession = require('cookie-session');
     }),
     BullModule.forRoot({
       redis: {
-        host: 'localhost',
-        port: 6379,
+        host: process.env.REDIS_HOST,
+        port: parseInt(process.env.REDIS_PORT),
       },
+    }),
+    WinstonModule.forRoot({
+      
     }),
     TypeOrmModule.forRoot(),
     UserModule,
@@ -56,8 +63,9 @@ const cookieSession = require('cookie-session');
     UserSessionModule,
     TransactionModule,
     ChatModule,
+    FriendRequestModule,
   ],
-  controllers: [AppController],
+  controllers: [AppController, FriendRequestController],
   providers: [
     AppService,
     {

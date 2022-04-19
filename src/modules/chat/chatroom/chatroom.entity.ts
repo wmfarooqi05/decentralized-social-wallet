@@ -9,6 +9,8 @@ import {
   JoinTable,
   CreateDateColumn,
   UpdateDateColumn,
+  OneToOne,
+  JoinColumn,
 } from 'typeorm';
 import { ChatMessage } from '../chat-message/chat-message.entity';
 
@@ -51,9 +53,10 @@ export class Chatroom {
   })
   updatedAt: Date;
 
-  @Column({ nullable: true, type: 'uuid' })
-  lastMessageId: string;
-
+  @OneToOne(() => ChatMessage)
+  @JoinColumn({
+    name:"last-message"
+  })
   lastMessage: ChatMessage;
 
   @Column({

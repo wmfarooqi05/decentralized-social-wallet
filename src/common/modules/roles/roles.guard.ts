@@ -22,6 +22,12 @@ export class RolesGuard implements CanActivate {
     if (!currentUser) {
       return false;
     }
+
+    if (currentUser.role === UserRole.ADMIN) {
+      // All routes are allowed for Admin
+      return true;
+    }
+
     return requiredRoles.some((role) => currentUser.role === role);
   }
 }

@@ -94,20 +94,6 @@ export class ChatroomController {
     res.status(HttpStatus.CREATED).json(updatedChatroom);
   }
 
-  // @Post('/:chatroomId/message')
-  // @UseGuards(JwtAuthGuard)
-  // addNewMessage(
-  // ) {
-  //   return this.chatroomService.addNewMessageViaQueue();
-  // }
-
-  // @Put('/:chatroomId/messages')
-  // @UseGuards(JwtAuthGuard)
-  // async updateMessage(
-  // ) {
-  //   return this.chatroomService.updateMessageViaQueue();
-  // }
-
   @Delete('/:chatroomId/messages/:messageId')
   @UseGuards(JwtAuthGuard)
   async deleteMessageFromChatroom(
@@ -120,4 +106,25 @@ export class ChatroomController {
       messageId,
     );
   }
+
+  /******* DEV TEST *********/
+
+  @Post('/:chatroomId/message')
+  @UseGuards(JwtAuthGuard)
+  addNewMessage(
+    @Req() { user }: RequestWithUser,
+    @Param() { chatroomId },
+  ) {
+    return this.chatroomService.addNewMessageViaQueue(chatroomId, user);
+  }
+
+  @Put('/:chatroomId/messages')
+  @UseGuards(JwtAuthGuard)
+  async updateMessage(
+    @Req() { user }: RequestWithUser,
+    @Param() { chatroomId },
+  ) {
+    return this.chatroomService.updateMessageViaQueue(chatroomId, user);
+  }
+
 }

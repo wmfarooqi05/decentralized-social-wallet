@@ -6,7 +6,12 @@ import {
   Column,
   PrimaryGeneratedColumn,
   Timestamp,
+  ManyToMany,
+  JoinTable,
+  OneToMany,
 } from 'typeorm';
+import { Chatroom } from '../chat/chatroom/chatroom.entity';
+import { FriendRequest } from '../friend-request/friend-request.entity';
 
 export enum UserRole {
   ADMIN = 'ADMIN',
@@ -46,6 +51,9 @@ export class User {
   @Column({ default: null })
   image: string;
 
+  @ManyToMany(() => Chatroom, (chatroom) => chatroom.participants)
+  chatrooms: Chatroom[];
+
   @Column({
     type: 'enum',
     enum: UserRole,
@@ -59,6 +67,12 @@ export class User {
     default: UserStatus.ACTIVE,
   })
   userStatus: UserStatus;
+
+  @OneToMany(() => FriendRequest, (friendRequest) => friendRequest.sender)
+  sentFriendRequests: Pick<User, 'id'>[];
+
+  @OneToMany(() => FriendRequest, (friendRequest) => friendRequest.receiver)
+  receivedFriendRequests: Pick<User, 'id'>[];
 
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   createdAt: Timestamp;

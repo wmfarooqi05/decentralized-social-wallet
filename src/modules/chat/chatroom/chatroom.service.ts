@@ -19,9 +19,8 @@ import { GET_EXISTING_PRIVATE_CHATROOM } from './query/get-existing-private-chat
 import { MESSAGE_TYPE_ENUM } from '../chat.types';
 import {
   paginationHelper,
-  paginationHelperOffsetLimit,
 } from 'src/common/helpers/pagination';
-import { GET_CHATROOMS_BY_USER_ID } from './query/get-chatrooms-by-user-id';
+import { ChatQueueService } from '../redis/chat-queue.service';
 
 @Injectable()
 export class ChatroomService {
@@ -31,25 +30,29 @@ export class ChatroomService {
     private userService: UserService,
     @Inject(forwardRef(() => ChatMessageService))
     private chatMessageService: ChatMessageService,
+    // @TODO: remove this after DEV test
+    private chatQueueService: ChatQueueService,
   ) {}
 
   async findAllChatrooms(page: string, pageSize: string) {
     const { skip, take } = paginationHelper(page, pageSize);
-    const chatrooms = await this.chatroomRepository.find({
+    return this.chatroomRepository.find({
+      relations: ['participants', 'lastMessage'],
       skip,
       take,
     });
-
-    return this.addLastMessagesToChatrooms(chatrooms);
   }
 
-  async findAllChatroomsByUser(id: string, page?: string, pageSize?: string) {
-    const { limit, offset } = paginationHelperOffsetLimit(page, pageSize);
-    return this.chatroomRepository.query(GET_CHATROOMS_BY_USER_ID, [
-      [id],
-      limit,
-      offset,
-    ]);
+  async findAllChatroomsByUser(page?: strintring) {
+    const { skip, take } = paginationHelper(page, pageSize);
+    return this.chatroomRepository.find({
+      relations: ['participants', 'lastMessage'],
+      order: {
+        lastMessageUpdatedAt: 'DESC',
+      },
+      skip,
+      take,
+    });
   }
 
   async _findChatroomById(id: string) {
@@ -179,41 +182,9 @@ export class ChatroomService {
     return newMessage;
   }
 
-  // async addNewMessageViaQueue() {
-  //   this.chatQueueService.saveToDB([
-  //     {
-  //       chatroomId: '1',
-  //       messageContent: 'asads',
-  //       messageRandomId: '123123123',
-  //       messageType: 'IMAGE',
-  //       userId:'1',
-  //     }
-  //   ],
-  //   '1',
-  //   '1',
-  //   )
-  // }
-
-  // async updateMessageViaQueue() {
-  //   this.chatQueueService.updateMessageStatusInDB([
-  //     {
-  //      id:'1',
-  //       chatroomId: '1',
-  //       messageContent: 'asads',
-  //       messageRandomId: '123123123',
-  //       messageType: 'IMAGE',
-  //       userId:'1',
-  //       reactions:[],
-  //       seenStatuses:[],
-  //       seenTicksCount:0,
-  //     },
-  //   ], 'DELIVERED', '1', '1');
-  // }
-
   async updateChatroomOnNewMessage(message: ChatMessage) {
     const chatroom = await this.chatroomRepository.findOne(message.chatroom.id);
-    chatroom.lastMessageId = message.id;
-    chatroom.lastMessageUpdatedAt = message.updatedAt;
+    chatroom.lastMessage = message;
     return this.chatroomRepository.save(chatroom);
   }
 
@@ -246,20 +217,42 @@ export class ChatroomService {
     }
   }
 
-  private async addLastMessagesToChatrooms(chatrooms: Chatroom[]) {
-    const lastMessageIds = chatrooms.map((x) => {
-      return x.lastMessageId;
-    });
+  /********** DEV TEST *********/
 
-    const lastMessages = await this.chatMessageService.findMessageByIds(
-      lastMessageIds,
+  async addNewMessageViaQueue(chatroomId: string, user: IUserJwt) {
+    this.chatQueueService.saveToDB(
+      [
+        {
+          chatroomId,
+          messageContent: 'asads',
+          messageRandomId: '123123123',
+          messageType: 'IMAGE',
+          userId: user.id,
+        },
+      ],
+      chatroomId,
+      user,
     );
+  }
 
-    return chatrooms.map((chatroom) => {
-      return {
-        ...chatroom,
-        lastMessage: lastMessages.find((x) => x.id === chatroom.lastMessageId),
-      };
-    });
+  async updateMessageViaQueue(chatroomId: string, user: IUserJwt) {
+    this.chatQueueService.updateMessageStatusInDB(
+      [
+        {
+          id: '1',
+          chatroomId,
+          messageContent: 'asads',
+          messageRandomId: '123123123',
+          messageType: 'IMAGE',
+          userId: user.id,
+          reactions: [],
+          seenStatuses: [],
+          seenTicksCount: 0,
+        },
+      ],
+      'DELIVERED',
+      '1',
+      user,
+    );
   }
 }

@@ -116,4 +116,15 @@ export class UserService {
 
     return url;
   }
+
+  // async findChatrooms(userId: string) {
+  //   return this.userRepository
+  //   .createQueryBuilder("user")
+  //   .leftJoinAndSelect("user.chatrooms", "chatroom")
+  //   .getMany();
+
+  //   return this.userRepository.findOne(userId, {
+  //     relations: ['chatrooms'],
+  //   });
+  // }
 }

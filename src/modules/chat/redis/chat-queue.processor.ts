@@ -15,6 +15,7 @@ export class ChatDBQueueConsumer {
 
   @Process(chatQueueEvents.SAVE_MESSAGE_TO_DATABASE)
   async saveToDatabase(job: Job<SAVE_MESSAGE_JOB_DATA>) {
+    console.log('redis chat queue', chatQueueEvents.SAVE_MESSAGE_TO_DATABASE, 'saveToDatabase');
     const {
       data: { messages, currentRoomId, user },
     } = job.data;
@@ -23,6 +24,7 @@ export class ChatDBQueueConsumer {
 
   @Process(chatQueueEvents.UPDATE_MESSAGE_STATUS_IN_DATABASE)
   async updateEntry(job: Job<UPDATE_MESSAGE_JOB_DATA>) {
+    console.log('redis chat queue', chatQueueEvents.UPDATE_MESSAGE_STATUS_IN_DATABASE, 'updateEntry');
     const {
       data: { messages, seenStatus, currentRoomId, acknowledingUser },
     } = job.data;
