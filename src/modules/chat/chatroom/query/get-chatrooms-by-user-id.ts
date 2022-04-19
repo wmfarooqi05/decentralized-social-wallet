@@ -8,13 +8,14 @@
 export const GET_CHATROOMS_BY_USER_ID = `
   SELECT
     c.*,
-    chatroom_participants_json.participants AS participants
+    chatroom_participants_json.userjson AS participants,
+    jsonb_agg(cm.*) as "lastMessage"
   FROM
     chatroom c
     INNER JOIN (
       SELECT
         cpujson."chatroomId" AS "chatroomId",
-        jsonb_agg(u.*) AS "participants",
+        jsonb_agg(u.*) AS "userjson",
         array_agg(distinct u.id) as "participantIds"
       FROM
         "user" u
@@ -32,11 +33,14 @@ export const GET_CHATROOMS_BY_USER_ID = `
       GROUP BY
         cpujson."chatroomId"
     ) AS chatroom_participants_json ON chatroom_participants_json."chatroomId" = c.id
+    INNER JOIN "chat_message" cm on cm.id = c."last-message"
   WHERE
-    chatroom_participants_json."participantIds" @> $1::uuid []
+    chatroom_participants_json."participantIds" @> $1 :: uuid []
+  GROUP By
+    c.id,
+    chatroom_participants_json.userjson
   ORDER BY
     c."lastMessageUpdatedAt" DESC
-
   LIMIT $2 
-  OFFSET $3
+  OFFSET $3;
 `;

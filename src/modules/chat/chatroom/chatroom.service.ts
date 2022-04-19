@@ -17,8 +17,9 @@ import { ChatMessageService } from '../chat-message/chat-message.service';
 import { Chatroom } from './chatroom.entity';
 import { GET_EXISTING_PRIVATE_CHATROOM } from './query/get-existing-private-chatroom';
 import { MESSAGE_TYPE_ENUM } from '../chat.types';
-import { paginationHelper } from 'src/common/helpers/pagination';
+import { paginationHelper, paginationHelperOffsetLimit } from 'src/common/helpers/pagination';
 import { ChatQueueService } from '../redis/chat-queue.service';
+import { GET_CHATROOMS_BY_USER_ID } from './query/get-chatrooms-by-user-id';
 
 @Injectable()
 export class ChatroomService {
@@ -41,37 +42,12 @@ export class ChatroomService {
   }
 
   async findAllChatroomsByUser(id: string, page?: string, pageSize?: string) {
-    const { skip, take } = paginationHelper(page, pageSize);
-    const chatrooms = await this.chatroomRepository.find({
-      relations: ['participants'],
-      select: {
-        participants: true,
-      },
-      // where: {
-      //   participants: [
-      //     { id: '*' },
-      //     {
-      //       id: '05e17251-f4a8-479c-a061-22d18227f471',
-      //     },
-      //   ],
-      // },
-      // relations: {
-      //   project: true,
-      // },
-      order: {
-        lastMessageUpdatedAt: 'DESC',
-      },
-      skip,
-      take,
-    });
-
-    return chatrooms.filter((chatroom) => {
-      if (chatroom.participants.find((p) => p.id === id)) {
-        return true;
-      } else {
-        return false;
-      }
-    });
+    const { offset, limit } = paginationHelperOffsetLimit(page, pageSize);
+    return await this.chatroomRepository.query(GET_CHATROOMS_BY_USER_ID, [
+      [ id ],
+      limit,
+      offset,
+    ])
   }
 
   async _findChatroomById(id: string) {
