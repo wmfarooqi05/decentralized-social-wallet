@@ -15,6 +15,4 @@ export const GET_EXISTING_PRIVATE_CHATROOM = `
       cpu. "chatroomId") AS cp ON cp.chatroomId = c.id
   AND array_length(cp.participants, 1) = 2
   AND cp.participants <@ $1::uuid [];
-  LIMIT $2
-  OFFSET $3
 `;

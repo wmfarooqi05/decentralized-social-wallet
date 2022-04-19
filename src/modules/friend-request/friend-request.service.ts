@@ -3,12 +3,14 @@ import {
   NotFoundException,
   UnprocessableEntityException,
 } from '@nestjs/common';
-import {
-  InjectConnection,
-  InjectRepository,
-} from '@nestjs/typeorm';
+import { InjectConnection, InjectRepository } from '@nestjs/typeorm';
 import { paginationHelper } from 'src/common/helpers/pagination';
-import { Connection, Like, Not } from 'typeorm';
+import {
+  Connection,
+  FindOptionsWhere,
+  Like,
+  Not,
+} from 'typeorm';
 
 import { Repository } from 'typeorm';
 import { FriendRequest, FriendRequest_Status } from './friend-request.entity';
@@ -24,34 +26,42 @@ export class FriendRequestService {
   async getFriendRequests(senderId: string, page = null, pageSize = null) {
     const { skip, take } = paginationHelper(page, pageSize);
     // @TODO: add pagination
+
+    const order: any = {
+      updatedAt: "ASC",
+    }
     return this.friendRequestRepository.find({
       where: {
-        sender: senderId,
+        sender: {id: senderId },
         friendshipStatus: Not(FriendRequest_Status.BLOCKED_BY_OTHER_USER),
       },
       skip,
       take,
-      order: {
-        updatedAt: 'DESC',
-      },
+      order,
     });
   }
 
   async searchFriendList(sender, queryString, page = null, pageSize = null) {
     const { skip, take } = paginationHelper(page, pageSize);
     // @TODO: add pagination
-    const whereClause = {
-      sender,
+    const whereClause: FindOptionsWhere<FriendRequest> = {
+      sender: { id: sender },
       friendshipStatus: Not(FriendRequest_Status.BLOCKED_BY_OTHER_USER),
     };
 
     return this.friendRequestRepository.find({
+      relations: {
+        receiver: true,
+      },
+      select: {
+        sender: { id: true },
+      },
       where: [
         { ...whereClause, receiver: { username: Like(`%${queryString}%`) } },
         { ...whereClause, receiver: { email: Like(`%${queryString}%`) } },
-        { ...whereClause, receiver: { phoneNumber: Like(`%${queryStri, receiver: { fullName: Like(`%${queryString}%`) } },
+        { ...whereClause, receiver: { phoneNumber: Like(`%${queryString}%`) } },
+        { ...whereClause, receiver: { fullName: Like(`%${queryString}%`) } },
       ],
-      relations: ['receiver'],
       skip,
       take,
     });
@@ -60,8 +70,8 @@ export class FriendRequestService {
   async sendFriendRequest(senderId: string, receiverId: string) {
     const exists = await this.friendRequestRepository.findOne({
       where: {
-        sender: senderId,
-        receiver: receiverId,
+        sender: { id: senderId },
+        receiver: { id: receiverId },
       },
     });
 
@@ -91,13 +101,14 @@ export class FriendRequestService {
   async acceptFriendRequest(
     senderId: string,
     receiverId: string,
+    status: FriendRequest_Status,
   ) {
     // @TODO
     // check if user is on accepting end
     const friendRequestReceiver = await this.friendRequestRepository.findOne({
       where: {
-        sender: senderId,
-        receiver: receiverId,
+        sender: { id: senderId },
+        receiver: { id: receiverId },
       },
     });
 
@@ -108,8 +119,8 @@ export class FriendRequestService {
 
       const friendRequestCreator = await this.friendRequestRepository.findOne({
         where: {
-          sender: receiverId,
-          receiver: senderId,
+          sender: { id: receiverId },
+          receiver: { id: senderId },
         },
       });
 
@@ -123,8 +134,10 @@ export class FriendRequestService {
 
   async cancelSentFriendRequest(senderId: string, receiverId: string) {
     const sentFriendRequest = await this.friendRequestRepository.findOne({
-      sender: senderId,
-      receiver: receiverId,
+      where: {
+        sender: { id: senderId},
+        receiver: { id: receiverId},
+      },
     });
 
     if (!sentFriendRequest) {
@@ -135,8 +148,10 @@ export class FriendRequestService {
       FriendRequest_Status.WAITING_FOR_CURRENT_USER_RESPONSE
     ) {
       const receivedFriendRequest = await this.friendRequestRepository.findOne({
-        sender: receiverId,
-        receiver: senderId,
+        where: {
+          sender: { id: receiverId },
+          receiver: { id: senderId },
+        },
       });
 
       this.friendRequestDeleteTransaction(
@@ -153,8 +168,8 @@ export class FriendRequestService {
   async blockFriend(senderId: string, receiverId: string) {
     const senderFriendRequest = await this.friendRequestRepository.findOne({
       where: {
-        sender: senderId,
-        receiver: receiverId,
+        sender: { id: senderId},
+        receiver: { id: receiverId},
       },
     });
 
@@ -168,8 +183,10 @@ export class FriendRequestService {
     if (senderFriendRequest) {
       senderFriendRequest.friendshipStatus = FriendRequest_Status.BLOCKED_BY_ME;
       const receivedFriendRequest = await this.friendRequestRepository.findOne({
-        sender: receiverId,
-        receiver: senderId,
+        where: {
+          sender: { id: receiverId },
+          receiver: { id: senderId },
+        },
       });
       receivedFriendRequest.friendshipStatus =
         FriendRequest_Status.BLOCKED_BY_OTHER_USER;
@@ -191,8 +208,8 @@ export class FriendRequestService {
   async unFriend(senderId: string, receiverId: string) {
     const senderFriendRequest = await this.friendRequestRepository.findOne({
       where: {
-        sender: senderId,
-        receiver: receiverId,
+        sender: { id: senderId},
+        receiver: { id: receiverId},
       },
     });
 
@@ -206,8 +223,10 @@ export class FriendRequestService {
     if (senderFriendRequest) {
       senderFriendRequest.friendshipStatus = FriendRequest_Status.NOT_SENT;
       const receivedFriendRequest = await this.friendRequestRepository.findOne({
-        sender: receiverId,
-        receiver: senderId,
+        where: {
+          sender: { id: receiverId },
+          receiver: { id: senderId },
+        },
       });
       receivedFriendRequest.friendshipStatus = FriendRequest_Status.NOT_SENT;
 
@@ -250,10 +269,14 @@ export class FriendRequestService {
     const queryRunner = this.connection.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
+    let senderResponse: FriendRequest = null;
+    let error: Error = null;
     try {
+      senderResponse = await queryRunner.manager.save(sender);
       await queryRunner.manager.save(receiver);
       queryRunner.commitTransaction();
     } catch (e) {
+      error = e;
       queryRunner.rollbackTransaction();
     } finally {
     }
@@ -267,6 +290,7 @@ export class FriendRequestService {
     await queryRunner.connect();
     await queryRunner.startTransaction();
     let senderResponse = null;
+    let error: Error = null;
     try {
       senderResponse = await queryRunner.manager.update(
         FriendRequest,
@@ -291,6 +315,7 @@ export class FriendRequestService {
       );
       await queryRunner.commitTransaction();
     } catch (e) {
+      error = e;
       await queryRunner.rollbackTransaction();
     } finally {
     }
@@ -305,10 +330,12 @@ export class FriendRequestService {
     const queryRunner = this.connection.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
+    let error: Error = null;
     try {
       await queryRunner.manager.remove([sender, receiver]);
       queryRunner.commitTransaction();
     } catch (e) {
+      error = e;
       queryRunner.rollbackTransaction();
       throw new UnprocessableEntityException(
         e.message,

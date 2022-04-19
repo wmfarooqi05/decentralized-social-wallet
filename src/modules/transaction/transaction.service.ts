@@ -16,8 +16,10 @@ export class TransactionService {
     return this.transactionRepo.find();
   }
 
-  async getTransactionById(id: number) {
-    return this.transactionRepo.findOne(id);
+  async getTransactionById(id: string) {
+    return this.transactionRepo.findOne({
+      where: { id }
+    });
   }
 
   async createTransaction(payload: CreateTransactionDTO) {

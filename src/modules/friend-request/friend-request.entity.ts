@@ -9,6 +9,7 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   PrimaryColumn,
+  PrimaryGeneratedColumn,
 } from 'typeorm';
 import { User } from '../user/user.entity';
 
@@ -24,15 +25,16 @@ export enum FriendRequest_Status {
 
 @Entity()
 export class FriendRequest {
-  @PrimaryColumn({ type: 'uuid', name: 'senderId' })
-  @ManyToOne(() => User, (user) => user.sentFriendRequests, { primary: true })
-  sender: string;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
-  @PrimaryColumn({ type: 'uuid', name: 'receiverId' })
+  @ManyToOne(() => User, (user) => user.sentFriendRequests, { createForeignKeyConstraints: true })
+  sender: User;
+
   @ManyToOne(() => User, (user) => user.receivedFriendRequests, {
-    primary: true,
+    createForeignKeyConstraints: true,
   })
-  receiver: string;
+  receiver: User;
 
   @Column({
     type: 'enum',

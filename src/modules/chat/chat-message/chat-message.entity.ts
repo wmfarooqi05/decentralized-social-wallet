@@ -44,7 +44,7 @@ export class ChatMessage {
   seenTicksCount: number;
 
   @Column({ default: false })
-  isDeleted: boolean;
+  isDeleted?: boolean;
 
   /**
    * @NOTE This will not be stored as jsonb

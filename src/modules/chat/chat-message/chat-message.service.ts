@@ -8,9 +8,11 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { paginationHelper } from 'src/common/helpers/pagination';
 import { IUserJwt } from 'src/common/modules/jwt/jwt-payload.interface';
+import { GoogleCloudService } from 'src/common/services/google-cloud/google-cloud.service';
 import { User } from 'src/modules/user/user.entity';
 import { UserService } from 'src/modules/user/user.service';
 import { Repository } from 'typeorm';
+import { v4 as uuidv4 } from 'uuid';
 import { MESSAGE_TYPE_ENUM, SeenStatus, SeenStatuses } from '../chat.types';
 import { Chatroom } from '../chatroom/chatroom.entity';
 import { ChatroomService } from '../chatroom/chatroom.service';
@@ -28,6 +30,7 @@ export class ChatMessageService {
     private userService: UserService,
     @Inject(forwardRef(() => ChatroomService))
     private chatroomService: ChatroomService,
+    private googleCloudService: GoogleCloudService,
   ) {}
 
   createMessage(
@@ -49,7 +52,10 @@ export class ChatMessageService {
     return this.chatMessageRepository.save(message);
   }
   findMessageById(id: string, relations?: string[]): Promise<ChatMessage> {
-    return this.chatMessageRepository.findOne(id, {
+    return this.chatMessageRepository.findOne({
+      where: {
+        id,
+      },
       relations,
     });
   }
@@ -76,7 +82,10 @@ export class ChatMessageService {
     return this.chatMessageRepository.update(messageId, message);
   }
   async deleteMessage(chatroomId: string, user: User, messageId: string) {
-    const message = await this.chatMessageRepository.findOne(messageId, {
+    const message = await this.chatMessageRepository.findOne({
+      where: {
+        id: messageId,
+      },
       relations: ['user', 'chatroom'],
     });
     if (message.user.id !== user.id) {
@@ -205,5 +214,59 @@ export class ChatMessageService {
         seenStatuses: messagesRecord[i].seenStatuses,
       });
     }
+  }
+
+  async uploadChatImage(
+    userJwt: IUserJwt,
+    currentRoomId: string,
+    buffer: Buffer,
+    mimetype: string,
+  ) {
+    const id = uuidv4();
+
+    await this.chatroomService.findChatroomById(currentRoomId, userJwt);
+
+    const url = await this.googleCloudService.save(
+      `media/chatrooms/${currentRoomId}/${id}.${mimetype.split('/')[1]}`,
+      buffer,
+    );
+
+    /*** Message Storage */
+
+    const user = await this.userService.findOneById(userJwt.id);
+    const chatroom = await this.chatroomService._findChatroomById(
+      currentRoomId,
+    );
+
+    if (!chatroom.participants.find((x) => x.id === user.id)) {
+      throw new UnauthorizedException('This user cannot create this message');
+    }
+
+    const seenStatuses: SeenStatuses[] = [];
+    const timeNow = new Date();
+    chatroom.participants.map((participant: User) => {
+      seenStatuses.push({
+        status: 'NOT_DELIVERED',
+        userId: participant.id,
+        updatedAt: timeNow,
+      });
+    });
+
+    const newMessage = {
+      chatroom: { id: currentRoomId },
+      messageContent: url,
+      messageRandomId: id,
+      messageType: MESSAGE_TYPE_ENUM.IMAGE,
+      reactions: [],
+      seenStatuses,
+      seenTicksCount: 0,
+      user: { id: userJwt.id },
+      sendingTime: new Date(),
+    };
+
+    const message = await this.chatMessageRepository.save(newMessage);
+    await this.chatroomService.updateChatroomOnNewMessage(message);
+
+    return message;
   }
 }

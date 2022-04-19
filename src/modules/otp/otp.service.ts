@@ -84,7 +84,7 @@ export class OtpService {
 
   async validateOTP(userId: string, otp: string) {
     const otpRecord = await this.otpRepo.findOne({
-      where: { user: userId },
+      where: { user: { id: userId } },
       order: { id: 'DESC' },
     });
 

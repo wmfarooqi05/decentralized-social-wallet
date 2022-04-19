@@ -11,15 +11,13 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { IUserJwt } from 'src/common/modules/jwt/jwt-payload.interface';
 import { User, UserRole } from 'src/modules/user/user.entity';
 import { UserService } from 'src/modules/user/user.service';
-import { Repository } from 'typeorm';
+import { Any, In, Repository, ArrayContainedBy } from 'typeorm';
 import { ChatMessage } from '../chat-message/chat-message.entity';
 import { ChatMessageService } from '../chat-message/chat-message.service';
 import { Chatroom } from './chatroom.entity';
 import { GET_EXISTING_PRIVATE_CHATROOM } from './query/get-existing-private-chatroom';
 import { MESSAGE_TYPE_ENUM } from '../chat.types';
-import {
-  paginationHelper,
-} from 'src/common/helpers/pagination';
+import { paginationHelper } from 'src/common/helpers/pagination';
 import { ChatQueueService } from '../redis/chat-queue.service';
 
 @Injectable()
@@ -30,7 +28,6 @@ export class ChatroomService {
     private userService: UserService,
     @Inject(forwardRef(() => ChatMessageService))
     private chatMessageService: ChatMessageService,
-    // @TODO: remove this after DEV test
     private chatQueueService: ChatQueueService,
   ) {}
 
@@ -43,28 +40,56 @@ export class ChatroomService {
     });
   }
 
-  async findAllChatroomsByUser(page?: strintring) {
+  async findAllChatroomsByUser(id: string, page?: string, pageSize?: string) {
     const { skip, take } = paginationHelper(page, pageSize);
-    return this.chatroomRepository.find({
-      relations: ['participants', 'lastMessage'],
+    const chatrooms = await this.chatroomRepository.find({
+      relations: ['participants'],
+      select: {
+        participants: true,
+      },
+      // where: {
+      //   participants: [
+      //     { id: '*' },
+      //     {
+      //       id: '05e17251-f4a8-479c-a061-22d18227f471',
+      //     },
+      //   ],
+      // },
+      // relations: {
+      //   project: true,
+      // },
       order: {
         lastMessageUpdatedAt: 'DESC',
       },
       skip,
       take,
     });
+
+    return chatrooms.filter((chatroom) => {
+      if (chatroom.participants.find((p) => p.id === id)) {
+        return true;
+      } else {
+        return false;
+      }
+    });
   }
 
   async _findChatroomById(id: string) {
-    return await this.chatroomRepository.findOne(id, {
+    return await this.chatroomRepository.findOne({
+      where: { id },
       relations: ['participants'],
     });
   }
 
   async findChatroomById(id: string, user: IUserJwt) {
-    const chatroom = await this.chatroomRepository.findOne(id, {
+    const chatroom = await this.chatroomRepository.findOne({
+      where: { id },
       relations: ['participants'],
     });
+
+    if (!chatroom) {
+      throw new NotFoundException("Chatroom doesn't exists");
+    }
     await this.checkIfUserPermitted(user, chatroom.participants);
     return chatroom;
   }
@@ -90,7 +115,8 @@ export class ChatroomService {
     const existingChatroom = await this.checkIfChatroomExists(participants);
 
     if (existingChatroom.length) {
-      return this.chatroomRepository.findOne(existingChatroom[0]?.id, {
+      return this.chatroomRepository.findOne({
+        where: { id: existingChatroom[0]?.id },
         relations: ['participants'],
       });
     }
@@ -138,7 +164,8 @@ export class ChatroomService {
     participantId: string,
     chatroomId: string,
   ): Promise<Chatroom> {
-    const chatroom = await this.chatroomRepository.findOne(chatroomId, {
+    const chatroom = await this.chatroomRepository.findOne({
+      where: { id: chatroomId },
       relations: ['participants'],
     });
     await this.checkIfUserPermitted(userJwtPayload, chatroom.participants);
@@ -159,7 +186,8 @@ export class ChatroomService {
     messageRandomId?: string,
   ) {
     const user = await this.userService.findByUsername(username);
-    const chatroom = await this.chatroomRepository.findOne(chatroomId, {
+    const chatroom = await this.chatroomRepository.findOne({
+      where: { id: chatroomId },
       relations: ['participants'],
     });
 
@@ -182,8 +210,24 @@ export class ChatroomService {
     return newMessage;
   }
 
+  async uploadChatImage(
+    userJwt: IUserJwt,
+    currentRoomId: string,
+    buffer: Buffer,
+    mimetype: string,
+  ) {
+    return this.chatMessageService.uploadChatImage(
+      userJwt,
+      currentRoomId,
+      buffer,
+      mimetype,
+    );
+  }
+
   async updateChatroomOnNewMessage(message: ChatMessage) {
-    const chatroom = await this.chatroomRepository.findOne(message.chatroom.id);
+    const chatroom = await this.chatroomRepository.findOne({
+      where: { id: message.chatroom.id },
+    });
     chatroom.lastMessage = message;
     return this.chatroomRepository.save(chatroom);
   }

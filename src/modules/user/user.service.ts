@@ -3,7 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './user.entity';
 import { GoogleCloudService } from 'src/common/services/google-cloud/google-cloud.service';
@@ -32,14 +32,14 @@ export class UserService {
     if (!id) {
       return null;
     }
-    return this.userRepository.findOne(id);
+    return this.userRepository.findOne({ where: { id } });
   }
 
   async findByIds(ids: string[]) {
     if (!ids.length) {
       return null;
     }
-    return this.userRepository.findByIds(ids);
+    return this.userRepository.findBy({ id: In(ids) });
   }
 
   async findUser(user: {
@@ -59,15 +59,15 @@ export class UserService {
   }
 
   async findByUsername(username: string) {
-    return this.userRepository.findOne({ username });
+    return this.userRepository.findOne({ where: { username } });
   }
 
   async findByEmail(email: string) {
-    return this.userRepository.findOne({ email });
+    return this.userRepository.findOne({ where: { email } });
   }
 
   async findByPhoneNumber(phoneNumber: string) {
-    return this.userRepository.findOne({ phoneNumber });
+    return this.userRepository.findOne({ where: { phoneNumber } });
   }
 
   async update(id: string, attrs: Partial<User>) {

@@ -10,8 +10,11 @@ import {
   Query,
   Req,
   Res,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { Response } from 'express';
 import { PaginationDto } from 'src/common/dto/PaginationDto';
 import { JwtAuthGuard } from 'src/common/modules/jwt/jwt-auth.guard';
@@ -104,6 +107,22 @@ export class ChatroomController {
       chatroomId,
       user.username,
       messageId,
+    );
+  }
+
+  @Post('/:chatroomId/upload-chat-image')
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadChatImage(
+    @Req() request: RequestWithUser,
+    @Param() { chatroomId },
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    return this.chatroomService.uploadChatImage(
+      request.currentUser,
+      chatroomId,
+      file.buffer,
+      file.mimetype,
     );
   }
 
