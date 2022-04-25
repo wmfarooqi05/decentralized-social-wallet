@@ -24,12 +24,13 @@ export type SeenStatuses = {
 };
 
 export enum MESSAGE_TYPE_ENUM {
-  TEXT,
-  IMAGE,
-  VIDEO,
-  LOCATION,
-  AUDIO,
-  FILE,
+  TEXT = "TEXT",
+  IMAGE = "IMAGE",
+  VIDEO = "VIDEO",
+  LOCATION = "LOCATION",
+  AUDIO = "AUDIO",
+  FILE = "FILE",
+  CONTACT = "CONTACT",
 }
 
 export type Reaction = {
