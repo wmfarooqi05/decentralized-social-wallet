@@ -134,18 +134,18 @@ export class ChatMessageService {
     acknowledingUser: IUserJwt,
   ) {
     if (!acknowledingUser.id) {
-      throw new Error('User JWT doesn\'t has id param');
+      console.error('User JWT doesn\'t has id param');
     }
     const user = await this.userService.findOneById(acknowledingUser.id);
     if (!user) {
-      console.error('This user cannot create this message');
+      console.error('The user doesn\'t exists');
     }
     const chatroom = await this.chatroomService._findChatroomById(
       currentRoomId,
     );
 
     if (!chatroom.participants.find((x) => x.id === user.id)) {
-      throw new UnauthorizedException('This user cannot create this message');
+      console.error('This user cannot create this message');
     }
 
     const seenStatuses: SeenStatuses[] = [];
