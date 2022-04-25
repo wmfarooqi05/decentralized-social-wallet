@@ -3,6 +3,7 @@ import {
   forwardRef,
   Inject,
   Injectable,
+  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -70,6 +71,7 @@ export class ChatMessageService {
       where: {
         chatroom: { id: chatroomId },
       },
+      relations: ['user'],
       skip,
       take,
       order: {
@@ -81,13 +83,19 @@ export class ChatMessageService {
   async update(messageId: string, message: ChatMessage) {
     return this.chatMessageRepository.update(messageId, message);
   }
-  async deleteMessage(chatroomId: string, user: User, messageId: string) {
+  async deleteMessage(chatroomId: string, user: User, messageId: string, messageRandomId: string) {
     const message = await this.chatMessageRepository.findOne({
-      where: {
+      where: [{
         id: messageId,
-      },
+      }, {
+        messageRandomId,
+        user: { id: user.id },
+      }],
       relations: ['user', 'chatroom'],
     });
+    if (!message) {
+      throw new NotFoundException('Message not found');
+    }
     if (message.user.id !== user.id) {
       throw new UnauthorizedException(
         'A user can only delete his own messages',
@@ -125,7 +133,13 @@ export class ChatMessageService {
     currentRoomId: string,
     acknowledingUser: IUserJwt,
   ) {
+    if (!acknowledingUser.id) {
+      throw new Error('User JWT doesn\'t has id param');
+    }
     const user = await this.userService.findOneById(acknowledingUser.id);
+    if (!user) {
+      console.error('This user cannot create this message');
+    }
     const chatroom = await this.chatroomService._findChatroomById(
       currentRoomId,
     );
@@ -192,27 +206,31 @@ export class ChatMessageService {
     currentRoomId: string,
     acknowledingUser: IUserJwt,
   ) {
-    // It will verify if acknowledging user is part of this chatroom
-    await this.chatroomService.findChatroomById(
-      currentRoomId,
-      acknowledingUser,
-    );
+    try {
+      // It will verify if acknowledging user is part of this chatroom
+      await this.chatroomService.findChatroomById(
+        currentRoomId,
+        acknowledingUser,
+      );
 
-    const messageIds = messages.map((x) => x.id);
-    const messagesRecord = await this.chatMessageRepository.findByIds(
-      messageIds,
-    );
+      const messageIds = messages.map((x) => x.id);
+      const messagesRecord = await this.chatMessageRepository.findByIds(
+        messageIds,
+      );
 
-    for (let i = 0; i < messagesRecord.length; i++) {
-      messagesRecord[i].seenStatuses.forEach((_seenStatus: SeenStatuses) => {
-        if (_seenStatus.userId === acknowledingUser.id) {
-          _seenStatus.status = seenStatus;
-        }
-      });
+      for (let i = 0; i < messagesRecord.length; i++) {
+        messagesRecord[i].seenStatuses.forEach((_seenStatus: SeenStatuses) => {
+          if (_seenStatus.userId === acknowledingUser.id) {
+            _seenStatus.status = seenStatus;
+          }
+        });
 
-      await this.chatMessageRepository.update(messagesRecord[i].id, {
-        seenStatuses: messagesRecord[i].seenStatuses,
-      });
+        await this.chatMessageRepository.update(messagesRecord[i].id, {
+          seenStatuses: messagesRecord[i].seenStatuses,
+        });
+      }
+    } catch(e) {
+      console.error(e);
     }
   }
 
@@ -222,51 +240,55 @@ export class ChatMessageService {
     buffer: Buffer,
     mimetype: string,
   ) {
-    const id = uuidv4();
+    try {
+      const id = uuidv4();
 
-    await this.chatroomService.findChatroomById(currentRoomId, userJwt);
+      await this.chatroomService.findChatroomById(currentRoomId, userJwt);
 
-    const url = await this.googleCloudService.save(
-      `media/chatrooms/${currentRoomId}/${id}.${mimetype.split('/')[1]}`,
-      buffer,
-    );
+      const url = await this.googleCloudService.save(
+        `media/chatrooms/${currentRoomId}/${id}.${mimetype.split('/')[1]}`,
+        buffer,
+      );
 
-    /*** Message Storage */
+      /*** Message Storage */
 
-    const user = await this.userService.findOneById(userJwt.id);
-    const chatroom = await this.chatroomService._findChatroomById(
-      currentRoomId,
-    );
+      const user = await this.userService.findOneById(userJwt.id);
+      const chatroom = await this.chatroomService._findChatroomById(
+        currentRoomId,
+      );
 
-    if (!chatroom.participants.find((x) => x.id === user.id)) {
-      throw new UnauthorizedException('This user cannot create this message');
-    }
+      if (!chatroom.participants.find((x) => x.id === user.id)) {
+        throw new UnauthorizedException('This user cannot create this message');
+      }
 
-    const seenStatuses: SeenStatuses[] = [];
-    const timeNow = new Date();
-    chatroom.participants.map((participant: User) => {
-      seenStatuses.push({
-        status: 'NOT_DELIVERED',
-        userId: participant.id,
-        updatedAt: timeNow,
+      const seenStatuses: SeenStatuses[] = [];
+      const timeNow = new Date();
+      chatroom.participants.map((participant: User) => {
+        seenStatuses.push({
+          status: 'NOT_DELIVERED',
+          userId: participant.id,
+          updatedAt: timeNow,
+        });
       });
-    });
 
-    const newMessage = {
-      chatroom: { id: currentRoomId },
-      messageContent: url,
-      messageRandomId: id,
-      messageType: MESSAGE_TYPE_ENUM.IMAGE,
-      reactions: [],
-      seenStatuses,
-      seenTicksCount: 0,
-      user: { id: userJwt.id },
-      sendingTime: new Date(),
+      const newMessage = {
+        chatroom: { id: currentRoomId },
+        messageContent: url,
+        messageRandomId: id,
+        messageType: MESSAGE_TYPE_ENUM.IMAGE,
+        reactions: [],
+        seenStatuses,
+        seenTicksCount: 0,
+        user: { id: userJwt.id },
+        sendingTime: new Date(),
+      };
+
+      const message = await this.chatMessageRepository.save(newMessage);
+      await this.chatroomService.updateChatroomOnNewMessage(message);
+
+      return message;
+    } catch(e) {
+      console.error(e);
     };
-
-    const message = await this.chatMessageRepository.save(newMessage);
-    await this.chatroomService.updateChatroomOnNewMessage(message);
-
-    return message;
   }
 }

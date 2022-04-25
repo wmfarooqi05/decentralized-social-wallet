@@ -19,7 +19,7 @@ export class ChatQueueService {
   constructor(@InjectQueue(CHAT_QUEUE) private readonly chatDatabaseQueue: Queue) {}
 
   saveToDB(messages: IMESSAGE[], currentRoomId: string, user: IUserJwt): void {
-    console.log('chat-queue, saveToDB');
+    console.log('chat-queue, saveToDB', currentRoomId, user);
     const jobData: SAVE_MESSAGE_JOB_DATA = {
       type: chatQueueEvents.SAVE_MESSAGE_TO_DATABASE,
       data: { messages, currentRoomId, user },
@@ -36,13 +36,13 @@ export class ChatQueueService {
     currentRoomId: string,
     acknowledingUser: IUserJwt,
   ): void {
-    console.log('chat-queue, updateMessageStatusInDB');
+    console.log('chat-queue, updateMessageStatusInDB', currentRoomId, acknowledingUser);
     const jobData: UPDATE_MESSAGE_JOB_DATA = {
       type: chatQueueEvents.UPDATE_MESSAGE_STATUS_IN_DATABASE,
       data: { messages, seenStatus, currentRoomId, acknowledingUser },
     };
     this.chatDatabaseQueue.add(
-      chatQueueEvents.SAVE_MESSAGE_TO_DATABASE,
+      chatQueueEvents.UPDATE_MESSAGE_STATUS_IN_DATABASE,
       jobData,
     );
   }

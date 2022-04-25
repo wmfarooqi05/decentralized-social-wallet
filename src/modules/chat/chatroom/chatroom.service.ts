@@ -212,9 +212,10 @@ export class ChatroomService {
     chatroomId: string,
     username: string,
     messageId: string,
+    messageRandomId: string,
   ) {
     const user = await this.userService.findByUsername(username);
-    return this.chatMessageService.deleteMessage(chatroomId, user, messageId);
+    return this.chatMessageService.deleteMessage(chatroomId, user, messageId, messageRandomId);
   }
 
   private async checkIfChatroomExists(participants: string[]): Promise<any[]> {

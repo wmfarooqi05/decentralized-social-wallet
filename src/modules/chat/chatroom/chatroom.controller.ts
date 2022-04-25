@@ -42,19 +42,6 @@ export class ChatroomController {
     return this.chatroomService.findChatroomById(chatroomId, user);
   }
 
-  @Get('/:chatroomId/messages')
-  @UseGuards(JwtAuthGuard)
-  findMessagesByChatroomId(
-    @Query() { page, pageSize }: PaginationDto,
-    @Param() { chatroomId },
-  ) {
-    return this.chatroomService.findMessagesByChatroomId(
-      chatroomId,
-      page,
-      pageSize,
-    );
-  }
-
   @Get()
   @UseGuards(JwtAuthGuard)
   findAllChatroomsByUser(
@@ -82,6 +69,21 @@ export class ChatroomController {
     );
   }
 
+  /** CHAT MESSAGES */
+
+  @Get('/:chatroomId/messages')
+  @UseGuards(JwtAuthGuard)
+  findMessagesByChatroomId(
+    @Query() { page, pageSize }: PaginationDto,
+    @Param() { chatroomId },
+  ) {
+    return this.chatroomService.findMessagesByChatroomId(
+      chatroomId,
+      page,
+      pageSize,
+    );
+  }
+
   @Put('/:chatroomId/add-participant/:participantId')
   @UseGuards(JwtAuthGuard)
   async addParticipantToChatroom(
@@ -97,18 +99,20 @@ export class ChatroomController {
     res.status(HttpStatus.CREATED).json(updatedChatroom);
   }
 
-  @Delete('/:chatroomId/messages/:messageId')
+  @Delete('/:chatroomId/message')
   @UseGuards(JwtAuthGuard)
   async deleteMessageFromChatroom(
     @Req() { user }: RequestWithUser,
-    @Param() { chatroomId, messageId },
+    @Param() { chatroomId },
+    @Body() { messageId, messageRandomId } : any,
   ) {
     return this.chatroomService.deleteMessageFromChatroom(
       chatroomId,
       user.username,
       messageId,
+      messageRandomId,
     );
-  }
+  } 
 
   @Post('/:chatroomId/upload-chat-image')
   @UseGuards(JwtAuthGuard)
