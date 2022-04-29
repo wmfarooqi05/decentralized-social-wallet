@@ -58,11 +58,11 @@ export class ChatroomController {
   @Post('/find-or-create')
   @UseGuards(JwtAuthGuard)
   findOrCreateChatroom(
-    @Req() { user }: RequestWithUser,
+    @Req() { user: { id } }: RequestWithUser,
     @Body() { name, icon, participants }: CreateChatroomDto,
   ) {
     return this.chatroomService.findOrCreateChatroom(
-      user.username,
+      id,
       participants,
       name,
       icon,

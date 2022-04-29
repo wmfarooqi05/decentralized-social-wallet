@@ -11,7 +11,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { IUserJwt } from 'src/common/modules/jwt/jwt-payload.interface';
 import { User, UserRole } from 'src/modules/user/user.entity';
 import { UserService } from 'src/modules/user/user.service';
-import { Any, In, Repository, ArrayContainedBy } from 'typeorm';
+import { Repository, EntityManager } from 'typeorm';
 import { ChatMessage } from '../chat-message/chat-message.entity';
 import { ChatMessageService } from '../chat-message/chat-message.service';
 import { Chatroom } from './chatroom.entity';
@@ -47,7 +47,7 @@ export class ChatroomService {
       [ id ],
       limit,
       offset,
-    ])
+    ]);
   }
 
   async _findChatroomById(id: string) {
@@ -83,7 +83,7 @@ export class ChatroomService {
   }
 
   async findOrCreateChatroom(
-    username: string,
+    creatorId: string,
     participants: string[],
     name?: string,
     icon?: string,
@@ -97,16 +97,46 @@ export class ChatroomService {
       });
     }
 
-    return this.createChatroom(username, participants, name, icon);
+    return this.createChatroom(creatorId, participants, name, icon);
+  }
+
+  // Private
+  async findOrCreateChatroomTransaction(
+    participants: string[],
+    manager: EntityManager,
+  ) {
+    const existingChatroom = await this.checkIfChatroomExists(participants);
+
+    if (existingChatroom.length) {
+      return this.chatroomRepository.findOne({
+        where: { id: existingChatroom[0]?.id },
+        relations: ['participants'],
+      });
+    } else {
+      const participantUsers = await this.userService.findByIds(participants);
+      if (participantUsers.length !== participants.length) {
+        const nonExistingUser = participants.filter(
+          (x) => !participantUsers.find((p) => p.id === x),
+        );
+        throw new BadRequestException(
+          `User(s) doesn't exist with Id(s): ${nonExistingUser}`,
+        );
+      }
+
+      const chatroom = this.chatroomRepository.create({
+        participants: participantUsers,
+      });
+      await manager.save(chatroom);
+    }
   }
 
   private async createChatroom(
-    username: string,
+    creatorId: string,
     participants: string[],
     name?: string,
     icon?: string,
   ) {
-    const user = await this.userService.findByUsername(username);
+    const user = await this.userService.findOneById(creatorId);
     if (!user) {
       throw new NotFoundException("User doesn't exist");
     }
@@ -215,7 +245,12 @@ export class ChatroomService {
     messageRandomId: string,
   ) {
     const user = await this.userService.findByUsername(username);
-    return this.chatMessageService.deleteMessage(chatroomId, user, messageId, messageRandomId);
+    return this.chatMessageService.deleteMessage(
+      chatroomId,
+      user,
+      messageId,
+      messageRandomId,
+    );
   }
 
   private async checkIfChatroomExists(participants: string[]): Promise<any[]> {

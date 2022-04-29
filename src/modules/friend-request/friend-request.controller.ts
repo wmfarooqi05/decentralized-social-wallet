@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  HttpStatus,
   Param,
   Post,
   Put,
@@ -14,7 +15,6 @@ import RequestWithUser from '../auth/interfaces/request-with-user';
 import { UserRole } from '../user/user.entity';
 import { AcceptFriendRequestDto } from './dto/accept-friend-request.dto';
 import { SendFriendRequestDto } from './dto/send-friend-request.dto';
-import { FriendRequest_Status } from './friend-request.entity';
 import { FriendRequestService } from './friend-request.service';
 
 @Controller('friend-request')
@@ -50,12 +50,16 @@ export class FriendRequestController {
   async acceptFriendRequest(
     @Req() { currentUser: { id: receiverId } }: RequestWithUser,
     @Body() { senderId }: AcceptFriendRequestDto,
+    @Res() res: Response,
   ) {
-    return this.friendRequestService.acceptFriendRequest(
-      senderId,
-      receiverId,
-      FriendRequest_Status.ACCEPTED,
-    );
+    const { status, error } =
+      await this.friendRequestService.acceptFriendRequest(senderId, receiverId);
+
+    if (status) {
+      res.status(HttpStatus.OK).send();
+    } else {
+      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(error.message);
+    }
   }
 
   @Post('cancel-request')
@@ -70,7 +74,7 @@ export class FriendRequestController {
       receiverId,
     );
 
-    res.status(200).send();
+    res.status(HttpStatus.OK).send();
   }
 
   @Post('block-friend')
@@ -80,12 +84,9 @@ export class FriendRequestController {
     @Res() res: Response,
     @Body() { receiverId }: SendFriendRequestDto,
   ) {
-    await this.friendRequestService.blockFriend(
-      senderId,
-      receiverId,
-    );
+    await this.friendRequestService.blockFriend(senderId, receiverId);
 
-   res.status(200).send();
+    res.status(HttpStatus.OK).send();
   }
 
   @Post('un-friend')
@@ -95,11 +96,8 @@ export class FriendRequestController {
     @Res() res: Response,
     @Body() { receiverId }: SendFriendRequestDto,
   ) {
-    await this.friendRequestService.unFriend(
-      senderId,
-      receiverId,
-    );
+    await this.friendRequestService.unFriend(senderId, receiverId);
 
-   res.status(200).send();
+    res.status(HttpStatus.OK).send();
   }
 }

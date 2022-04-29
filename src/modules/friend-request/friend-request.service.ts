@@ -8,18 +8,25 @@ import { paginationHelper } from 'src/common/helpers/pagination';
 import {
   Connection,
   FindOptionsWhere,
+  In,
   Like,
   Not,
+  UpdateResult,
 } from 'typeorm';
 
 import { Repository } from 'typeorm';
+import { UserService } from '../user/user.service';
 import { FriendRequest, FriendRequest_Status } from './friend-request.entity';
+import Errors from './errors';
+import { ChatroomService } from '../chat/chatroom/chatroom.service';
 
 @Injectable()
 export class FriendRequestService {
   constructor(
     @InjectRepository(FriendRequest)
     private friendRequestRepository: Repository<FriendRequest>,
+    private userService: UserService,
+    private chatroomService: ChatroomService,
     @InjectConnection() private connection: Connection,
   ) {}
 
@@ -28,13 +35,14 @@ export class FriendRequestService {
     // @TODO: add pagination
 
     const order: any = {
-      updatedAt: "ASC",
-    }
+      updatedAt: 'ASC',
+    };
     return this.friendRequestRepository.find({
       where: {
-        sender: {id: senderId },
+        sender: { id: senderId },
         friendshipStatus: Not(FriendRequest_Status.BLOCKED_BY_OTHER_USER),
       },
+      relations: ['receiver'],
       skip,
       take,
       order,
@@ -68,135 +76,118 @@ export class FriendRequestService {
   }
 
   async sendFriendRequest(senderId: string, receiverId: string) {
-    const exists = await this.friendRequestRepository.findOne({
-      where: {
-        sender: { id: senderId },
-        receiver: { id: receiverId },
-      },
-    });
+    const exists = await this.findFriendEntity(senderId, receiverId, false);
 
     if (exists) {
-      if (
-        exists.friendshipStatus ===
-        FriendRequest_Status.WAITING_FOR_CURRENT_USER_RESPONSE
-      ) {
-        throw new UnprocessableEntityException('Friend Request alreadt sent');
+      switch (exists.friendshipStatus) {
+        case FriendRequest_Status.WAITING_FOR_CURRENT_USER_RESPONSE:
+          throw new UnprocessableEntityException(
+            Errors.FriendRequest.FRIEND_REQUEST_ALREADY_SENT,
+          );
+        case FriendRequest_Status.ACCEPTED:
+          throw new UnprocessableEntityException(
+            Errors.FriendRequest.FRIEND_REQUEST_ALREADY_ACCEPTED,
+          );
+        case FriendRequest_Status.BLOCKED_BY_OTHER_USER:
+          throw new UnprocessableEntityException(
+            Errors.FriendRequest.YOU_ARE_BLOCKED_BY_OTHER_USER,
+          );
+        case FriendRequest_Status.BLOCKED_BY_ME:
+          throw new UnprocessableEntityException(
+            Errors.FriendRequest.YOU_HAVE_BLOCKED_THIS_USER,
+          );
       }
 
       if (exists.friendshipStatus === FriendRequest_Status.PENDING) {
-        // Accept the request instead?
+        return this.acceptFriendRequest(receiverId, senderId);
       }
-      // @TODO: check if status is blocked or something
-      // Update status
+    } else {
+      return this.createFriendRequestRelations(
+        senderId,
+        FriendRequest_Status.WAITING_FOR_CURRENT_USER_RESPONSE,
+        receiverId,
+        FriendRequest_Status.PENDING,
+      );
+    }
+  }
+
+  /**
+   * Accept a PENDING friend request
+   * @param senderId The other User who sent this request
+   * @param receiverId Me User who is accepting the request
+   */
+  async acceptFriendRequest(senderId: string, receiverId: string) {
+    // @TODO
+    // check if user is on accepting end
+    // For Relation A->B and B->A, we are finding row of B->A
+    const { friendshipStatus } = await this.findFriendEntity(
+      receiverId,
+      senderId,
+    );
+    switch (friendshipStatus) {
+      case FriendRequest_Status.ACCEPTED:
+        throw new UnprocessableEntityException(
+          Errors.FriendRequest.FRIEND_REQUEST_ALREADY_ACCEPTED,
+        );
     }
 
-    return this.createFriendRequestRelations(
+    if (friendshipStatus !== FriendRequest_Status.PENDING) {
+      // @TODO: investigate logic here
+      throw new UnprocessableEntityException(
+        'You cannot accept this friend request',
+      );
+    }
+
+    return this.friendRequestUpdateTransaction(
       senderId,
-      FriendRequest_Status.WAITING_FOR_CURRENT_USER_RESPONSE,
+      FriendRequest_Status.ACCEPTED,
       receiverId,
-      FriendRequest_Status.PENDING,
+      FriendRequest_Status.ACCEPTED,
+      true,
     );
   }
 
-  async acceptFriendRequest(
-    senderId: string,
-    receiverId: string,
-    status: FriendRequest_Status,
-  ) {
-    // @TODO
-    // check if user is on accepting end
-    const friendRequestReceiver = await this.friendRequestRepository.findOne({
-      where: {
-        sender: { id: senderId },
-        receiver: { id: receiverId },
-      },
-    });
-
-    if (
-      friendRequestReceiver.friendshipStatus === FriendRequest_Status.PENDING
-    ) {
-      friendRequestReceiver.friendshipStatus = FriendRequest_Status.ACCEPTED;
-
-      const friendRequestCreator = await this.friendRequestRepository.findOne({
-        where: {
-          sender: { id: receiverId },
-          receiver: { id: senderId },
-        },
-      });
-
-      friendRequestReceiver.friendshipStatus = FriendRequest_Status.ACCEPTED;
-      return this.friendRequestSaveTransaction(
-        friendRequestReceiver,
-        friendRequestCreator,
-      );
-    }
-  }
-
   async cancelSentFriendRequest(senderId: string, receiverId: string) {
-    const sentFriendRequest = await this.friendRequestRepository.findOne({
-      where: {
-        sender: { id: senderId},
-        receiver: { id: receiverId},
-      },
-    });
+    const { friendshipStatus } = await this.findFriendEntity(
+      senderId,
+      receiverId,
+    );
 
-    if (!sentFriendRequest) {
-      throw new NotFoundException("Friend Request doesn't exist");
-    }
     if (
-      sentFriendRequest.friendshipStatus ===
+      friendshipStatus ===
       FriendRequest_Status.WAITING_FOR_CURRENT_USER_RESPONSE
     ) {
-      const receivedFriendRequest = await this.friendRequestRepository.findOne({
-        where: {
-          sender: { id: receiverId },
-          receiver: { id: senderId },
-        },
-      });
-
-      this.friendRequestDeleteTransaction(
-        sentFriendRequest,
-        receivedFriendRequest,
-      );
+      this.friendRequestDeleteTransaction(senderId, receiverId);
     } else {
       throw new UnprocessableEntityException(
-        `Friend Request cannot be cancelled, Status: ${sentFriendRequest.friendshipStatus}`,
+        `Friend Request cannot be cancelled, Status: ${friendshipStatus}`,
       );
     }
   }
 
   async blockFriend(senderId: string, receiverId: string) {
-    const senderFriendRequest = await this.friendRequestRepository.findOne({
-      where: {
-        sender: { id: senderId},
-        receiver: { id: receiverId},
-      },
-    });
-
-    if (
-      senderFriendRequest?.friendshipStatus ===
-      FriendRequest_Status.BLOCKED_BY_OTHER_USER
-    ) {
-      throw new UnprocessableEntityException('Already blocked by other user');
-    }
+    const senderFriendRequest = await this.findFriendEntity(
+      senderId,
+      receiverId,
+      false,
+    );
 
     if (senderFriendRequest) {
-      senderFriendRequest.friendshipStatus = FriendRequest_Status.BLOCKED_BY_ME;
-      const receivedFriendRequest = await this.friendRequestRepository.findOne({
-        where: {
-          sender: { id: receiverId },
-          receiver: { id: senderId },
-        },
-      });
-      receivedFriendRequest.friendshipStatus =
-        FriendRequest_Status.BLOCKED_BY_OTHER_USER;
+      const { friendshipStatus } = senderFriendRequest;
+      if (friendshipStatus === FriendRequest_Status.BLOCKED_BY_OTHER_USER) {
+        throw new UnprocessableEntityException(
+          Errors.FriendRequest.YOU_ARE_BLOCKED_BY_OTHER_USER,
+        );
+      }
 
       await this.friendRequestUpdateTransaction(
-        senderFriendRequest,
-        receivedFriendRequest,
+        senderId,
+        FriendRequest_Status.BLOCKED_BY_ME,
+        receiverId,
+        FriendRequest_Status.BLOCKED_BY_OTHER_USER,
       );
     } else {
-      return this.createFriendRequestRelations(
+      await this.createFriendRequestRelations(
         senderId,
         FriendRequest_Status.BLOCKED_BY_ME,
         receiverId,
@@ -206,40 +197,55 @@ export class FriendRequestService {
   }
 
   async unFriend(senderId: string, receiverId: string) {
-    const senderFriendRequest = await this.friendRequestRepository.findOne({
-      where: {
-        sender: { id: senderId},
-        receiver: { id: receiverId},
-      },
-    });
+    const senderFriendRequest = await this.findFriendEntity(
+      senderId,
+      receiverId,
+    );
 
     if (
-      senderFriendRequest?.friendshipStatus ===
-      FriendRequest_Status.BLOCKED_BY_OTHER_USER
+      senderFriendRequest.friendshipStatus !== FriendRequest_Status.ACCEPTED
     ) {
-      throw new UnprocessableEntityException('Already blocked by other user');
-    }
-
-    if (senderFriendRequest) {
-      senderFriendRequest.friendshipStatus = FriendRequest_Status.NOT_SENT;
-      const receivedFriendRequest = await this.friendRequestRepository.findOne({
-        where: {
-          sender: { id: receiverId },
-          receiver: { id: senderId },
-        },
-      });
-      receivedFriendRequest.friendshipStatus = FriendRequest_Status.NOT_SENT;
-
-      await this.friendRequestUpdateTransaction(
-        senderFriendRequest,
-        receivedFriendRequest,
+      throw new UnprocessableEntityException(
+        Errors.FriendRequest.NOT_FRIEND_WITH_YOU,
       );
-    } else {
-      throw new NotFoundException('You are not friend with this user');
     }
+
+    await this.friendRequestUpdateTransaction(
+      senderId,
+      FriendRequest_Status.NOT_SENT,
+      receiverId,
+      FriendRequest_Status.NOT_SENT,
+    );
   }
 
   /*** HELPERS */
+
+  async findFriendEntity(
+    senderId: string,
+    receiverId: string,
+    errorOnNull = true,
+  ): Promise<FriendRequest | null> {
+    if (senderId === receiverId) {
+      throw new UnprocessableEntityException(
+        Errors.FriendRequest.BOTH_USERS_ARE_SAME,
+      );
+    }
+
+    const friendRequest = await this.friendRequestRepository.findOne({
+      where: {
+        sender: { id: senderId },
+        receiver: { id: receiverId },
+      },
+    });
+
+    if (!friendRequest && errorOnNull) {
+      throw new NotFoundException(
+        Errors.FriendRequest.FRIEND_REQUEST_DOESNT_EXISTS,
+      );
+    }
+
+    return friendRequest;
+  }
 
   async createFriendRequestRelations(
     senderId,
@@ -247,6 +253,11 @@ export class FriendRequestService {
     receiverId,
     receiverStatus,
   ) {
+    const user = await this.userService.findOneById(receiverId);
+    if (!user) {
+      throw new NotFoundException(`User: ${receiverId} does not exists`);
+    }
+
     const sender = this.friendRequestRepository.create({
       sender: senderId,
       receiver: receiverId,
@@ -258,7 +269,7 @@ export class FriendRequestService {
       friendshipStatus: receiverStatus,
     });
 
-    return this.friendRequestSaveTransaction(sender, receiver);
+    await this.friendRequestSaveTransaction(sender, receiver);
   }
 
   /*** TRANSACTIONS */
@@ -283,56 +294,73 @@ export class FriendRequestService {
   }
 
   async friendRequestUpdateTransaction(
-    sender: FriendRequest,
-    receiver: FriendRequest,
-  ) {
+    senderId: string,
+    senderFriendShipStatus: FriendRequest_Status,
+    receiverId: string,
+    receiverFriendShipStatus: FriendRequest_Status,
+    createOrEnableChatroom = false,
+  ): Promise<{ status: boolean; error?: Error }> {
     const queryRunner = this.connection.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
-    let senderResponse = null;
+    let senderResponse: UpdateResult = null;
     let error: Error = null;
     try {
       senderResponse = await queryRunner.manager.update(
         FriendRequest,
         {
-          sender: sender.sender,
-          receiver: sender.receiver,
+          sender: senderId,
+          receiver: receiverId,
         },
         {
-          ...sender,
+          friendshipStatus: senderFriendShipStatus,
         },
       );
 
       await queryRunner.manager.update(
         FriendRequest,
         {
-          sender: receiver.sender,
-          receiver: receiver.receiver,
+          sender: receiverId,
+          receiver: senderId,
         },
         {
-          ...receiver,
+          friendshipStatus: receiverFriendShipStatus,
         },
       );
+
+      if (createOrEnableChatroom) {
+        await this.chatroomService.findOrCreateChatroomTransaction(
+          [senderId, receiverId],
+          queryRunner.manager,
+        );
+      }
       await queryRunner.commitTransaction();
+      return {
+        status: true,
+      };
     } catch (e) {
-      error = e;
       await queryRunner.rollbackTransaction();
+      return {
+        status: false,
+        error: e,
+      };
     } finally {
     }
-
-    return senderResponse;
   }
 
-  async friendRequestDeleteTransaction(
-    sender: FriendRequest,
-    receiver: FriendRequest,
-  ) {
+  async friendRequestDeleteTransaction(senderId: string, receiverId: string) {
     const queryRunner = this.connection.createQueryRunner();
+
+    const friendRequests = await this.friendRequestRepository.find({
+      where: {
+        sender: In([senderId, receiverId]),
+      },
+    });
     await queryRunner.connect();
     await queryRunner.startTransaction();
     let error: Error = null;
     try {
-      await queryRunner.manager.remove([sender, receiver]);
+      await queryRunner.manager.remove(FriendRequest, friendRequests);
       queryRunner.commitTransaction();
     } catch (e) {
       error = e;
