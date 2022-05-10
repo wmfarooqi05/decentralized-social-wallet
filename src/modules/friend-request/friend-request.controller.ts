@@ -6,6 +6,7 @@ import {
   Param,
   Post,
   Put,
+  Query,
   Req,
   Res,
 } from '@nestjs/common';
@@ -16,35 +17,45 @@ import { UserRole } from '../user/user.entity';
 import { AcceptFriendRequestDto } from './dto/accept-friend-request.dto';
 import { SendFriendRequestDto } from './dto/send-friend-request.dto';
 import { FriendRequestService } from './friend-request.service';
+import { BlockFriendRequestDto } from './dto/block-friend-request.dto';
+import { CancelFriendRequestDto } from './dto/cancel-friend-request.dto';
+import { UnFriendRequestDto } from './dto/un-friend-request.dto';
+import { ApiResponse } from '@nestjs/swagger';
+import { STATUS_CODES } from 'http';
 
 @Controller('friend-request')
 export class FriendRequestController {
   constructor(private friendRequestService: FriendRequestService) {}
 
   @Get()
+  @ApiResponse({ status: 200, description: 'Paginated friend list'})
   async getFriendRequests(
     @Req() { currentUser: { id: senderId } }: RequestWithUser,
+    @Query() { page, pageSize },
   ) {
-    return this.friendRequestService.getFriendRequests(senderId);
+    return this.friendRequestService.getFriendRequests(senderId, page, pageSize);
   }
 
   @Get('/search-friend-list/:queryString')
+  @ApiResponse({ status: 200, description: 'Paginated filtered friend list'})
   searchFriendList(
     @Req() { currentUser: { id: sender } }: RequestWithUser,
     @Param() { queryString },
+    @Query() { page, pageSize },
   ) {
-    return this.friendRequestService.searchFriendList(sender, queryString);
+    return this.friendRequestService.searchFriendList(sender, queryString, page, pageSize);
   }
 
   @Post('send-request')
   @Roles(UserRole.USER)
   async sendFriendRequest(
     @Req() { currentUser: { id: senderId } }: RequestWithUser,
-    @Body() { receiverId }: SendFriendRequestDto,
+    @Body() { receiverId, message }: SendFriendRequestDto,
   ) {
-    return this.friendRequestService.sendFriendRequest(senderId, receiverId);
+    return this.friendRequestService.sendFriendRequest(senderId, receiverId, message);
   }
 
+  // @TODO Put comments and verify sender vs receiver entity
   @Put('accept-request')
   @Roles(UserRole.USER)
   async acceptFriendRequest(
@@ -52,14 +63,8 @@ export class FriendRequestController {
     @Body() { senderId }: AcceptFriendRequestDto,
     @Res() res: Response,
   ) {
-    const { status, error } =
-      await this.friendRequestService.acceptFriendRequest(senderId, receiverId);
-
-    if (status) {
-      res.status(HttpStatus.OK).send();
-    } else {
-      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(error.message);
-    }
+    await this.friendRequestService.acceptFriendRequest(senderId, receiverId);
+    res.sendStatus(HttpStatus.OK);
   }
 
   @Post('cancel-request')
@@ -67,7 +72,7 @@ export class FriendRequestController {
   async cancelFriendRequest(
     @Req() { currentUser: { id: senderId } }: RequestWithUser,
     @Res() res: Response,
-    @Body() { receiverId }: SendFriendRequestDto,
+    @Body() { receiverId }: CancelFriendRequestDto,
   ): Promise<void> {
     await this.friendRequestService.cancelSentFriendRequest(
       senderId,
@@ -82,9 +87,21 @@ export class FriendRequestController {
   async blockFriend(
     @Req() { currentUser: { id: senderId } }: RequestWithUser,
     @Res() res: Response,
-    @Body() { receiverId }: SendFriendRequestDto,
+    @Body() { receiverId }: BlockFriendRequestDto,
   ) {
     await this.friendRequestService.blockFriend(senderId, receiverId);
+
+    res.status(HttpStatus.OK).send();
+  }
+
+  @Post('unblock-friend')
+  @Roles(UserRole.USER)
+  async unblockFriend(
+    @Req() { currentUser: { id: senderId } }: RequestWithUser,
+    @Res() res: Response,
+    @Body() { receiverId }: BlockFriendRequestDto,
+  ) {
+    await this.friendRequestService.unblockFriend(senderId, receiverId);
 
     res.status(HttpStatus.OK).send();
   }
@@ -94,7 +111,7 @@ export class FriendRequestController {
   async unFriend(
     @Req() { currentUser: { id: senderId } }: RequestWithUser,
     @Res() res: Response,
-    @Body() { receiverId }: SendFriendRequestDto,
+    @Body() { receiverId }: UnFriendRequestDto,
   ) {
     await this.friendRequestService.unFriend(senderId, receiverId);
 

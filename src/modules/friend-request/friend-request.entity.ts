@@ -28,7 +28,9 @@ export class FriendRequest {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @ManyToOne(() => User, (user) => user.sentFriendRequests, { createForeignKeyConstraints: true })
+  @ManyToOne(() => User, (user) => user.sentFriendRequests, {
+    createForeignKeyConstraints: true,
+  })
   sender: User;
 
   @ManyToOne(() => User, (user) => user.receivedFriendRequests, {
@@ -42,6 +44,9 @@ export class FriendRequest {
     default: FriendRequest_Status.PENDING,
   })
   friendshipStatus: FriendRequest_Status;
+
+  @Column({ default: '' })
+  message: string;
 
   @CreateDateColumn()
   createdAt: Timestamp;

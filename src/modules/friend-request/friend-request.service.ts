@@ -1,7 +1,7 @@
 import {
   Injectable,
   NotFoundException,
-  UnprocessableEntityException,
+  BadRequestException,
 } from '@nestjs/common';
 import { InjectConnection, InjectRepository } from '@nestjs/typeorm';
 import { paginationHelper } from 'src/common/helpers/pagination';
@@ -12,6 +12,7 @@ import {
   Like,
   Not,
   UpdateResult,
+  DataSource,
 } from 'typeorm';
 
 import { Repository } from 'typeorm';
@@ -75,25 +76,29 @@ export class FriendRequestService {
     });
   }
 
-  async sendFriendRequest(senderId: string, receiverId: string) {
+  async sendFriendRequest(
+    senderId: string,
+    receiverId: string,
+    message: string,
+  ) {
     const exists = await this.findFriendEntity(senderId, receiverId, false);
 
     if (exists) {
       switch (exists.friendshipStatus) {
         case FriendRequest_Status.WAITING_FOR_CURRENT_USER_RESPONSE:
-          throw new UnprocessableEntityException(
+          throw new BadRequestException(
             Errors.FriendRequest.FRIEND_REQUEST_ALREADY_SENT,
           );
         case FriendRequest_Status.ACCEPTED:
-          throw new UnprocessableEntityException(
+          throw new BadRequestException(
             Errors.FriendRequest.FRIEND_REQUEST_ALREADY_ACCEPTED,
           );
         case FriendRequest_Status.BLOCKED_BY_OTHER_USER:
-          throw new UnprocessableEntityException(
+          throw new BadRequestException(
             Errors.FriendRequest.YOU_ARE_BLOCKED_BY_OTHER_USER,
           );
         case FriendRequest_Status.BLOCKED_BY_ME:
-          throw new UnprocessableEntityException(
+          throw new BadRequestException(
             Errors.FriendRequest.YOU_HAVE_BLOCKED_THIS_USER,
           );
       }
@@ -107,6 +112,7 @@ export class FriendRequestService {
         FriendRequest_Status.WAITING_FOR_CURRENT_USER_RESPONSE,
         receiverId,
         FriendRequest_Status.PENDING,
+        message,
       );
     }
   }
@@ -126,25 +132,28 @@ export class FriendRequestService {
     );
     switch (friendshipStatus) {
       case FriendRequest_Status.ACCEPTED:
-        throw new UnprocessableEntityException(
+        throw new BadRequestException(
           Errors.FriendRequest.FRIEND_REQUEST_ALREADY_ACCEPTED,
         );
     }
 
     if (friendshipStatus !== FriendRequest_Status.PENDING) {
       // @TODO: investigate logic here
-      throw new UnprocessableEntityException(
-        'You cannot accept this friend request',
-      );
+      throw new BadRequestException('You cannot accept this friend request');
     }
 
-    return this.friendRequestUpdateTransaction(
+    const { status, error } = await this.friendRequestUpdateTransaction(
       senderId,
       FriendRequest_Status.ACCEPTED,
       receiverId,
       FriendRequest_Status.ACCEPTED,
       true,
     );
+
+    if (!status && error) {
+      delete error['response'];
+      throw new BadRequestException(error);
+    }
   }
 
   async cancelSentFriendRequest(senderId: string, receiverId: string) {
@@ -159,7 +168,7 @@ export class FriendRequestService {
     ) {
       this.friendRequestDeleteTransaction(senderId, receiverId);
     } else {
-      throw new UnprocessableEntityException(
+      throw new BadRequestException(
         `Friend Request cannot be cancelled, Status: ${friendshipStatus}`,
       );
     }
@@ -175,7 +184,7 @@ export class FriendRequestService {
     if (senderFriendRequest) {
       const { friendshipStatus } = senderFriendRequest;
       if (friendshipStatus === FriendRequest_Status.BLOCKED_BY_OTHER_USER) {
-        throw new UnprocessableEntityException(
+        throw new BadRequestException(
           Errors.FriendRequest.YOU_ARE_BLOCKED_BY_OTHER_USER,
         );
       }
@@ -196,6 +205,19 @@ export class FriendRequestService {
     }
   }
 
+  async unblockFriend(senderId: string, receiverId: string) {
+    const { friendshipStatus } = await this.findFriendEntity(
+      senderId,
+      receiverId,
+    );
+
+    if (friendshipStatus !== FriendRequest_Status.BLOCKED_BY_ME) {
+      throw new Error(Errors.FriendRequest.YOU_HAVE_NOT_BLOCKED_THIS_USER);
+    }
+
+    await this.friendRequestDeleteTransaction(senderId, receiverId);
+  }
+
   async unFriend(senderId: string, receiverId: string) {
     const senderFriendRequest = await this.findFriendEntity(
       senderId,
@@ -205,9 +227,7 @@ export class FriendRequestService {
     if (
       senderFriendRequest.friendshipStatus !== FriendRequest_Status.ACCEPTED
     ) {
-      throw new UnprocessableEntityException(
-        Errors.FriendRequest.NOT_FRIEND_WITH_YOU,
-      );
+      throw new BadRequestException(Errors.FriendRequest.NOT_FRIEND_WITH_YOU);
     }
 
     await this.friendRequestUpdateTransaction(
@@ -226,9 +246,7 @@ export class FriendRequestService {
     errorOnNull = true,
   ): Promise<FriendRequest | null> {
     if (senderId === receiverId) {
-      throw new UnprocessableEntityException(
-        Errors.FriendRequest.BOTH_USERS_ARE_SAME,
-      );
+      throw new BadRequestException(Errors.FriendRequest.BOTH_USERS_ARE_SAME);
     }
 
     const friendRequest = await this.friendRequestRepository.findOne({
@@ -252,6 +270,7 @@ export class FriendRequestService {
     senderStatus,
     receiverId,
     receiverStatus,
+    message = '',
   ) {
     const user = await this.userService.findOneById(receiverId);
     if (!user) {
@@ -262,6 +281,7 @@ export class FriendRequestService {
       sender: senderId,
       receiver: receiverId,
       friendshipStatus: senderStatus,
+      message,
     });
     const receiver = this.friendRequestRepository.create({
       sender: receiverId,
@@ -303,10 +323,8 @@ export class FriendRequestService {
     const queryRunner = this.connection.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
-    let senderResponse: UpdateResult = null;
-    let error: Error = null;
     try {
-      senderResponse = await queryRunner.manager.update(
+      await queryRunner.manager.update(
         FriendRequest,
         {
           sender: senderId,
@@ -350,11 +368,17 @@ export class FriendRequestService {
 
   async friendRequestDeleteTransaction(senderId: string, receiverId: string) {
     const queryRunner = this.connection.createQueryRunner();
-
     const friendRequests = await this.friendRequestRepository.find({
-      where: {
-        sender: In([senderId, receiverId]),
-      },
+      where: [
+        {
+          sender: { id: senderId },
+          receiver: { id: receiverId },
+        },
+        {
+          sender: { id: receiverId },
+          receiver: { id: senderId },
+        },
+      ],
     });
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -365,7 +389,7 @@ export class FriendRequestService {
     } catch (e) {
       error = e;
       queryRunner.rollbackTransaction();
-      throw new UnprocessableEntityException(
+      throw new BadRequestException(
         e.message,
         'We cannot delete friend request',
       );
