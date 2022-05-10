@@ -27,6 +27,15 @@ import { STATUS_CODES } from 'http';
 export class FriendRequestController {
   constructor(private friendRequestService: FriendRequestService) {}
 
+  @Get('/search/:queryString')
+  search(
+    @Req() { currentUser: { id: senderId } }: RequestWithUser,
+    @Param() { queryString },
+    @Query() { page, pageSize },
+  ) {
+    return this.friendRequestService.search(senderId, queryString, page, pageSize);
+  }
+
   @Get()
   @ApiResponse({ status: 200, description: 'Paginated friend list'})
   async getFriendRequests(
@@ -39,11 +48,11 @@ export class FriendRequestController {
   @Get('/search-friend-list/:queryString')
   @ApiResponse({ status: 200, description: 'Paginated filtered friend list'})
   searchFriendList(
-    @Req() { currentUser: { id: sender } }: RequestWithUser,
+    @Req() { currentUser: { id: senderId } }: RequestWithUser,
     @Param() { queryString },
     @Query() { page, pageSize },
   ) {
-    return this.friendRequestService.searchFriendList(sender, queryString, page, pageSize);
+    return this.friendRequestService.searchFriendList(senderId, queryString, page, pageSize);
   }
 
   @Post('send-request')

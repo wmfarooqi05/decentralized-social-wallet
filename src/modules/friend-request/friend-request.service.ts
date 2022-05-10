@@ -20,6 +20,7 @@ import { UserService } from '../user/user.service';
 import { FriendRequest, FriendRequest_Status } from './friend-request.entity';
 import Errors from './errors';
 import { ChatroomService } from '../chat/chatroom/chatroom.service';
+import { User } from '../user/user.entity';
 
 @Injectable()
 export class FriendRequestService {
@@ -48,6 +49,32 @@ export class FriendRequestService {
       take,
       order,
     });
+  }
+
+  async search(
+    senderId: string,
+    queryString: string,
+    page = null,
+    pageSize = null,
+  ) {
+    const { skip, take } = paginationHelper(page, pageSize);
+    const users = await this.userService.search(queryString);
+
+    if (!users?.length) {
+      return [];
+    }
+
+    const friends = await this.friendRequestRepository.find({
+      where: {
+        sender: { id: senderId },
+        receiver: In(users.map((u) => u.id)),
+      },
+      relations: ['receiver'],
+      skip,
+      take,
+    });
+
+    return this.usersToFriendRequestJson(users, friends);
   }
 
   async searchFriendList(sender, queryString, page = null, pageSize = null) {
@@ -230,12 +257,7 @@ export class FriendRequestService {
       throw new BadRequestException(Errors.FriendRequest.NOT_FRIEND_WITH_YOU);
     }
 
-    await this.friendRequestUpdateTransaction(
-      senderId,
-      FriendRequest_Status.NOT_SENT,
-      receiverId,
-      FriendRequest_Status.NOT_SENT,
-    );
+    await this.friendRequestDeleteTransaction(senderId, receiverId);
   }
 
   /*** HELPERS */
@@ -281,12 +303,12 @@ export class FriendRequestService {
       sender: senderId,
       receiver: receiverId,
       friendshipStatus: senderStatus,
-      message,
     });
     const receiver = this.friendRequestRepository.create({
       sender: receiverId,
       receiver: senderId,
       friendshipStatus: receiverStatus,
+      message,
     });
 
     await this.friendRequestSaveTransaction(sender, receiver);
@@ -394,5 +416,26 @@ export class FriendRequestService {
         'We cannot delete friend request',
       );
     }
+  }
+
+  usersToFriendRequestJson(
+    users: User[],
+    friendRequests: FriendRequest[],
+  ): any[] {
+    const response = users.map((user) => {
+      return {
+        ...user,
+        friendshipStatus: FriendRequest_Status.NOT_SENT,
+      };
+    });
+
+    friendRequests.forEach((fr) => {
+      const index = response.findIndex(u => u.id === fr.receiver.id);
+      if (index > -1) {
+        response[index].friendshipStatus = fr.friendshipStatus;
+      }
+    });
+
+    return response;
   }
 }

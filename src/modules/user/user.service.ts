@@ -8,6 +8,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './user.entity';
 import { GoogleCloudService } from 'src/common/services/google-cloud/google-cloud.service';
 import { uuid } from 'uuidv4';
+import { paginationHelper } from 'src/common/helpers/pagination';
 
 @Injectable()
 export class UserService {
@@ -68,6 +69,20 @@ export class UserService {
 
   async findByPhoneNumber(phoneNumber: string) {
     return this.userRepository.findOne({ where: { phoneNumber } });
+  }
+
+  async search(queryString, page = null, pageSize = null): Promise<User[]> {
+    const { skip, take } = paginationHelper(page, pageSize);
+
+    return this.userRepository.find({
+      where: [
+        { username: queryString },
+        { email: queryString },
+        { phoneNumber: queryString },
+      ],
+      skip,
+      take,
+    });
   }
 
   async update(id: string, attrs: Partial<User>) {
